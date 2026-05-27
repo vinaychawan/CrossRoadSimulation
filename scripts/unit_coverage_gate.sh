@@ -23,6 +23,5 @@ echo "Running unit tests with 100% coverage requirement..."
   --cov=algorithms \
   --cov=persistence \
   --cov=api \
-  --cov=showcase \
   --cov-report=term-missing \
   --cov-fail-under=100

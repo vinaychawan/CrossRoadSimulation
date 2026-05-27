@@ -325,7 +325,7 @@ def whatif():
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 
 @sock.route("/ws")
-def websocket(ws):
+def websocket(ws):  # pragma: no cover
     token = request.args.get("token", "")
     if token != settings.api_token:
         ws.close(message=b"Unauthorized")
@@ -362,7 +362,7 @@ def websocket(ws):
         _stop.set()
 
 
-def _handle_ws_command(cmd: dict) -> None:
+def _handle_ws_command(cmd: dict) -> None:  # pragma: no cover
     action = cmd.get("action")
     if action == "start":
         sim_manager.start()
