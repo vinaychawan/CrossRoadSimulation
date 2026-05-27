@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+# Run the strict gate before every commit.
+bash "${ROOT_DIR}/scripts/unit_coverage_gate.sh"

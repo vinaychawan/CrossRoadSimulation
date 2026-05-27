@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+# Re-check at push time to prevent bypassing local commits.
+bash "${ROOT_DIR}/scripts/unit_coverage_gate.sh"

@@ -1,4 +1,4 @@
-.PHONY: install run test test-cov lint fmt migrate seed-db
+.PHONY: install run test test-cov test-unit-cov-100 lint fmt migrate seed-db
 
 install:
 	python3 -m venv .venv
@@ -12,6 +12,9 @@ test:
 
 test-cov:
 	.venv/bin/python3 -m pytest --cov --cov-report=term-missing --cov-report=html
+
+test-unit-cov-100:
+	bash scripts/unit_coverage_gate.sh
 
 lint:
 	.venv/bin/ruff check .
