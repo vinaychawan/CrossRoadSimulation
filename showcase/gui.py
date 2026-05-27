@@ -41,38 +41,41 @@ if _QT_API == "pyqt5":
         _QT_API = "pyqt6"  # fall back silently
 
 if _QT_API in ("pyqt6", ""):
+    from PyQt6.QtWidgets import (
+        QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QPushButton, QComboBox, QSpinBox, QGroupBox,
+        QSplitter, QTextEdit, QSlider, QStatusBar, QFrame,
+    )
+    from PyQt6.QtCore import (
+        Qt, QTimer, QThread, pyqtSignal, QRectF, QPointF,
+    )
+    from PyQt6.QtGui import (
+        QPainter, QPen, QBrush, QColor, QFont, QPainterPath, QLinearGradient,
+        QRadialGradient,
+    )
     try:
-        from PyQt6.QtWidgets import (
-            QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-            QLabel, QPushButton, QComboBox, QSpinBox, QGroupBox,
-            QSplitter, QTextEdit, QSlider, QStatusBar, QFrame,
-        )
-        from PyQt6.QtCore import (
-            Qt, QTimer, QThread, pyqtSignal, QRectF, QPointF,
-        )
-        from PyQt6.QtGui import (
-            QPainter, QPen, QBrush, QColor, QFont, QPainterPath, QLinearGradient,
-            QRadialGradient,
-        )
         from PyQt6.QtCharts import (
             QChart, QChartView, QLineSeries, QValueAxis, QSplineSeries,
         )
     except ModuleNotFoundError:
-        from PyQt5.QtWidgets import (
-            QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-            QLabel, QPushButton, QComboBox, QSpinBox, QGroupBox,
-            QSplitter, QTextEdit, QSlider, QStatusBar, QFrame,
-        )
-        from PyQt5.QtCore import (
-            Qt, QTimer, QThread, pyqtSignal, QRectF, QPointF,
-        )
-        from PyQt5.QtGui import (
-            QPainter, QPen, QBrush, QColor, QFont, QPainterPath, QLinearGradient,
-            QRadialGradient,
-        )
-        from PyQt5.QtChart import (
-            QChart, QChartView, QLineSeries, QValueAxis, QSplineSeries,
-        )
+        # QtCharts is an optional add-on package (PyQt6-Charts).
+        # Provide lightweight stubs so the module still imports;
+        # the chart panels will be empty placeholders at runtime.
+        class QChart:  # type: ignore[no-redef]
+            def __init__(self, *a, **kw): pass
+        class QChartView(QWidget):  # type: ignore[no-redef]
+            def __init__(self, *a, **kw): super().__init__()
+        class QLineSeries:  # type: ignore[no-redef]
+            def __init__(self, *a, **kw): pass
+            def append(self, *a): pass
+            def clear(self): pass
+            def count(self): return 0
+            def removePoints(self, *a): pass
+        class QSplineSeries(QLineSeries): pass  # type: ignore[no-redef]
+        class QValueAxis:  # type: ignore[no-redef]
+            def __init__(self, *a, **kw): pass
+            def setRange(self, *a): pass
+            def setTitleText(self, *a): pass
 
 import algorithms
 from algorithms.switcher import AlgorithmSwitcher
