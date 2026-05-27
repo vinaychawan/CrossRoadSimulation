@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import sys
+import signal
 import collections
 from typing import Optional
 
@@ -855,11 +856,17 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    # Let Ctrl+C terminate the app cleanly instead of showing a callback traceback.
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
     app.setApplicationName("Crossroads Simulator")
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    try:
+        sys.exit(app.exec())
+    except KeyboardInterrupt:
+        # Return silently when interrupted from terminal (e.g. offscreen runs).
+        raise SystemExit(130)
 
 
 if __name__ == "__main__":
