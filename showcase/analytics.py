@@ -274,11 +274,11 @@ def print_summary(df: pd.DataFrame) -> None:
     print("═" * 62)
     summary = df.groupby("algorithm").agg(
         seeds=("seed", "count"),
-        passed_mean=("vehicles_passed", np.mean),
-        passed_std=("vehicles_passed", np.std),
-        wait_mean=("avg_wait_ticks", np.mean),
-        wait_std=("avg_wait_ticks", np.std),
-        null_mean=("pct_null_control", np.mean),
+        passed_mean=("vehicles_passed", "mean"),
+        passed_std=("vehicles_passed", "std"),
+        wait_mean=("avg_wait_ticks", "mean"),
+        wait_std=("avg_wait_ticks", "std"),
+        null_mean=("pct_null_control", "mean"),
     ).round(2)
     print(summary.to_string())
     print("═" * 62)

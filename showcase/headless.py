@@ -150,11 +150,11 @@ def demo_algorithm_comparison():
 
     df = pd.DataFrame(rows)
     summary = df.groupby("algorithm").agg(
-        passed_mean=("passed", np.mean),
-        passed_std=("passed", np.std),
-        wait_mean=("avg_wait", np.mean),
-        wait_std=("avg_wait", np.std),
-        null_mean=("null_pct", np.mean),
+        passed_mean=("passed", "mean"),
+        passed_std=("passed", "std"),
+        wait_mean=("avg_wait", "mean"),
+        wait_std=("avg_wait", "std"),
+        null_mean=("null_pct", "mean"),
     ).round(2)
 
     tbl = Table(title="Algorithm KPI Summary", box=box.DOUBLE_EDGE,

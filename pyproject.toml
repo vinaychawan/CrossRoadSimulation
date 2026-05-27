@@ -9,6 +9,12 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short -v"
+filterwarnings = [
+    # matplotlib uses old pyparsing API names (third-party, not our code)
+    "ignore::DeprecationWarning:matplotlib",
+    # api.main module-reuse warning during test collection
+    "ignore:.*found in sys.modules after import of package.*:RuntimeWarning",
+]
 
 [tool.coverage.run]
 source = ["sim", "safety", "algorithms", "persistence", "api"]
