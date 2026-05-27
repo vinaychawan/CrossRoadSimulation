@@ -281,6 +281,8 @@ class TestGUI:
     @pytest.fixture(scope="class")
     def qt_app(self):
         """Create a QApplication for the test class."""
+        import os
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PyQt6.QtWidgets import QApplication
         # QApplication may already exist (singleton)
         app = QApplication.instance() or QApplication(sys.argv)

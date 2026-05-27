@@ -32,6 +32,8 @@ jobs:
         run: ruff check algorithms api persistence safety sim
 
       - name: Run unit + property tests with coverage
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           pytest tests/unit tests/property \
             --cov=sim --cov=safety --cov=algorithms --cov=persistence --cov=api \
