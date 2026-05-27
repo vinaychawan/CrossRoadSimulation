@@ -2,14 +2,11 @@
 Showcase tests — 100% coverage of showcase/*.py.
 Uses mocking to avoid GUI/TUI display and plt.show().
 """
-import sys
-import json
-import io
-import types
-import pytest
 import importlib
+import sys
 from unittest import mock
 
+import pytest
 
 # ── __main__ ─────────────────────────────────────────────────────────────────
 
@@ -107,7 +104,7 @@ class TestMain:
 
     def test_launch_gui_calls_main(self):
         m = self._get_main()
-        import importlib, showcase.gui as gui_module
+        import showcase.gui as gui_module
         with mock.patch.object(gui_module, "main") as mock_main:
             m._launch_gui()
             mock_main.assert_called_once()
@@ -159,6 +156,7 @@ class TestAnalytics:
 
     def test_to_dataframe(self):
         import pandas as pd
+
         from showcase.analytics import run_sim, to_dataframe
         results = [run_sim("null_control", seed=i, max_ticks=10) for i in range(2)]
         df = to_dataframe(results)
@@ -168,7 +166,7 @@ class TestAnalytics:
         assert len(df) == 2
 
     def test_print_summary(self, capsys):
-        from showcase.analytics import run_sim, to_dataframe, print_summary
+        from showcase.analytics import print_summary, run_sim, to_dataframe
         results = [run_sim("null_control", seed=i, max_ticks=10) for i in range(2)]
         df = to_dataframe(results)
         print_summary(df)
@@ -177,7 +175,8 @@ class TestAnalytics:
 
     def test_build_figure(self):
         import matplotlib.pyplot as plt
-        from showcase.analytics import run_sim, to_dataframe, build_figure
+
+        from showcase.analytics import build_figure, run_sim, to_dataframe
         results = [run_sim(a, seed=0, max_ticks=30)
                    for a in ("fixed_cycle", "adaptive_cycle", "null_control")]
         df = to_dataframe(results)
@@ -188,6 +187,7 @@ class TestAnalytics:
     def test_main_no_show(self):
         """main(show=False) should return a Figure without calling plt.show."""
         import matplotlib.pyplot as plt
+
         from showcase import analytics
         with mock.patch("matplotlib.pyplot.show") as mock_show:
             fig = analytics.main(show=False)
@@ -202,16 +202,16 @@ class TestHeadless:
     """Test headless showcase helpers without live terminal output."""
 
     def test_phase_cell(self):
+        from rich.text import Text
+
         from showcase.headless import _phase_cell
         from sim.enums import LightPhase
-        from rich.text import Text
         t = _phase_cell(LightPhase.GREEN)
         assert isinstance(t, Text)
         assert "GREEN" in str(t)
 
     def test_run_sim_returns_kpi(self):
         from showcase.headless import _run_sim
-        from sim.kpi import KPISnapshot
         final, samples, eng = _run_sim("null_control", seed=0, max_ticks=20)
         assert hasattr(final, "vehicles_passed")
         assert isinstance(samples, list)
@@ -282,14 +282,13 @@ class TestGUI:
     def qt_app(self):
         """Create a QApplication for the test class."""
         from PyQt6.QtWidgets import QApplication
-        import sys
         # QApplication may already exist (singleton)
         app = QApplication.instance() or QApplication(sys.argv)
         yield app
 
     def test_intersection_canvas_init(self, qt_app):
         from showcase.gui import IntersectionCanvas
-        from sim.enums import Direction, LightPhase
+        from sim.enums import LightPhase
         canvas = IntersectionCanvas()
         assert canvas._flash_state is True
         assert all(p == LightPhase.RED for p in canvas._lights.values())
@@ -313,8 +312,9 @@ class TestGUI:
         assert canvas._flash_state == (not initial)
 
     def test_live_chart_add_and_reset(self, qt_app):
-        from showcase.gui import LiveChart
         from PyQt6.QtGui import QColor
+
+        from showcase.gui import LiveChart
         chart = LiveChart("Test", "units", QColor("#ffffff"))
         chart.add_point(1.0, 5.0)
         chart.add_point(2.0, 10.0)
@@ -323,8 +323,9 @@ class TestGUI:
         assert len(chart._points) == 0
 
     def test_live_chart_windowed(self, qt_app):
-        from showcase.gui import LiveChart
         from PyQt6.QtGui import QColor
+
+        from showcase.gui import LiveChart
         chart = LiveChart("T", "u", QColor("#ffffff"))
         chart._window = 5
         for i in range(10):
@@ -380,8 +381,8 @@ class TestGUI:
 
     def test_main_window_on_sim_event_safety(self, qt_app):
         from showcase.gui import MainWindow
-        from sim.events import SimEvent
         from sim.enums import EventType
+        from sim.events import SimEvent
         win = MainWindow()
         evt = SimEvent(tick=1, event_type=EventType.SAFETY_OVERRIDE,
                        payload={"rule": "R1", "explanation": "conflict"})
@@ -391,8 +392,8 @@ class TestGUI:
 
     def test_main_window_on_sim_event_non_safety(self, qt_app):
         from showcase.gui import MainWindow
-        from sim.events import SimEvent
         from sim.enums import EventType
+        from sim.events import SimEvent
         win = MainWindow()
         initial_text = win._safety_log.toPlainText()
         evt = SimEvent(tick=1, event_type=EventType.KPI_SAMPLE, payload={})
@@ -593,8 +594,8 @@ class TestCrossroadsTUILogic:
 
     def test_on_event_safety_override(self, tui):
         """_on_event safety handler should not raise (query_one is mocked)."""
-        from sim.events import SimEvent
         from sim.enums import EventType
+        from sim.events import SimEvent
         evt = SimEvent(tick=1, event_type=EventType.SAFETY_OVERRIDE,
                        payload={"rule": "R1", "explanation": "test"})
         mock_log = mock.MagicMock()
@@ -604,8 +605,8 @@ class TestCrossroadsTUILogic:
 
     def test_on_event_non_safety(self, tui):
         """_on_event for non-safety events should do nothing."""
-        from sim.events import SimEvent
         from sim.enums import EventType
+        from sim.events import SimEvent
         evt = SimEvent(tick=1, event_type=EventType.KPI_SAMPLE, payload={})
         # Should not raise and should not call query_one
         with mock.patch.object(tui, "query_one") as mock_qo:
@@ -619,5 +620,6 @@ class TestCrossroadsTUILogic:
     def test_compose_yields_widgets(self, tui):
         """compose() should be a generator function."""
         import inspect
+
         from showcase.tui import CrossroadsTUI
         assert inspect.isgeneratorfunction(CrossroadsTUI.compose)

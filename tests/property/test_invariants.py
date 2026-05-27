@@ -8,12 +8,13 @@ Invariants verified:
 """
 from __future__ import annotations
 
-from hypothesis import given, settings as h_settings, HealthCheck
+from hypothesis import HealthCheck, given
+from hypothesis import settings as h_settings
 from hypothesis import strategies as st
 
+from safety.checker import SafetyChecker
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
-from safety.checker import SafetyChecker
 
 _CONFLICT_PAIRS = [
     (Direction.NORTH, Direction.EAST),
@@ -55,9 +56,9 @@ def test_safety_checker_never_outputs_conflicting_greens(raw_commands):
 @h_settings(max_examples=100)
 def test_determinism_same_seed_same_checksum(seed):
     """Two engines with identical seed + config must produce the same event log."""
-    from sim.engine import SimConfig, SimEngine
-    from algorithms.switcher import AlgorithmSwitcher
     from algorithms import discover
+    from algorithms.switcher import AlgorithmSwitcher
+    from sim.engine import SimConfig, SimEngine
 
     discover()
 
@@ -79,8 +80,8 @@ def test_determinism_same_seed_same_checksum(seed):
 @h_settings(max_examples=50)
 def test_different_seeds_may_differ(seed_a, offset):
     """Sanity: different seeds almost always produce different checksums."""
-    from sim.engine import SimConfig, SimEngine
     from algorithms.switcher import AlgorithmSwitcher
+    from sim.engine import SimConfig, SimEngine
 
     discover_called = True  # already discovered in session fixture
 

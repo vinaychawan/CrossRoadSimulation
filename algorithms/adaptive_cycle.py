@@ -7,7 +7,7 @@ hardware required).
 """
 from __future__ import annotations
 
-from algorithms import register, ControllerProtocol
+from algorithms import register
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
 

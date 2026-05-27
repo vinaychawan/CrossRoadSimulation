@@ -1,11 +1,11 @@
 """Intersection layout and lane model."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from collections import deque
+from dataclasses import dataclass, field
 
 from sim.enums import Direction
-from sim.lights import TrafficLight, SignalPlan, LightPhase
+from sim.lights import LightPhase, SignalPlan, TrafficLight
 from sim.vehicles import Vehicle
 
 

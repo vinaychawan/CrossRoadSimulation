@@ -4,10 +4,12 @@ Uses Flask test client (sync, no asyncio).
 """
 import json
 import uuid
+
 import pytest
+
 from api.main import app
-from api.sim_manager import SimManager
 from api.settings import settings
+from api.sim_manager import SimManager
 from sim.engine import SimConfig
 
 

@@ -13,12 +13,12 @@ import logging
 import statistics
 import threading
 import time
+from contextlib import suppress
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sock import Sock
-from sqlalchemy.orm import Session
 
 import algorithms
 from algorithms.switcher import AlgorithmSwitcher
@@ -28,7 +28,6 @@ from persistence import crud
 from persistence.database import get_session, init_db
 from safety.checker import SafetyChecker
 from sim.engine import SimConfig, SimEngine
-from sim.enums import Direction
 from sim.intersection import Intersection
 
 logging.basicConfig(
@@ -371,10 +370,8 @@ def _handle_ws_command(cmd: dict) -> None:  # pragma: no cover
     elif action == "reset":
         sim_manager.reset()
     elif action == "switch_algorithm":
-        try:
+        with suppress(KeyError):
             sim_manager.switch_algorithm(cmd.get("algorithm", "fixed_cycle"))
-        except KeyError:
-            pass
 
 
 # ── Persistence helper ────────────────────────────────────────────────────────

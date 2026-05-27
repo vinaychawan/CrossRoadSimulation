@@ -1,8 +1,7 @@
 """Unit tests for safety checker."""
-import pytest
+from safety.checker import SafetyChecker
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
-from safety.checker import SafetyChecker
 
 
 def _checker():

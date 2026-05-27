@@ -1,13 +1,15 @@
 """Shared pytest fixtures."""
 import os
+
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 import pytest
+
+from algorithms import discover
+from algorithms.switcher import AlgorithmSwitcher
+from safety.checker import SafetyChecker
 from sim.engine import SimConfig, SimEngine
 from sim.intersection import Intersection
-from algorithms.switcher import AlgorithmSwitcher
-from algorithms import discover
-from safety.checker import SafetyChecker
 
 
 @pytest.fixture(autouse=True, scope="session")

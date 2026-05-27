@@ -31,7 +31,7 @@ class VehicleSpec:
     deceleration_ms2: float
 
     @classmethod
-    def for_type(cls, vtype: VehicleType) -> "VehicleSpec":
+    def for_type(cls, vtype: VehicleType) -> VehicleSpec:
         return cls(**_VEHICLE_SPECS[vtype])
 
 

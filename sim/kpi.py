@@ -1,10 +1,9 @@
 """KPI calculator – computes metrics from event log + live state."""
 from __future__ import annotations
 
-from sim.enums import EventType, LightPhase
-from sim.events import EventLog, KPISnapshot
+from sim.events import KPISnapshot
 from sim.intersection import Intersection
-from sim.vehicles import Vehicle, VehicleState
+from sim.vehicles import Vehicle
 
 
 class KPICalculator:

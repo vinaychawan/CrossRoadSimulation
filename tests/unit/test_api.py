@@ -1,6 +1,8 @@
 """Flask endpoint smoke tests."""
 import json
+
 import pytest
+
 from api.main import app
 
 HEADERS = {"Authorization": "Bearer dev-token"}

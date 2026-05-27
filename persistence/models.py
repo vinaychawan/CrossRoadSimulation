@@ -5,12 +5,11 @@ SQLAlchemy 2.x resolves `Mapped` annotations at class-creation time and
 Python 3.14 changed `typing.Union.__getitem__` to a proper descriptor,
 breaking SQLAlchemy's internal `Union.__getitem__(tuple)` call when
 annotations are stored as strings.
-Using concrete `Optional[...]` types (instead of `X | None` strings) and
-avoiding the future import makes everything evaluate correctly.
+Using concrete non-union `Mapped[...]` annotations and `nullable=True`
+columns avoids SQLAlchemy's union reconstruction path on Python 3.14.
 """
 import datetime
 import json
-from typing import Any, List, Optional
 
 from sqlalchemy import (
     DateTime,
@@ -38,7 +37,7 @@ class Layout(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     config_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    scenarios: Mapped[List["Scenario"]] = relationship(back_populates="layout")
+    scenarios: Mapped[list["Scenario"]] = relationship(back_populates="layout")
 
     @property
     def config(self) -> dict:
@@ -57,7 +56,7 @@ class Scenario(Base):
     default_algorithm: Mapped[str] = mapped_column(String(64), default="fixed_cycle")
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
     layout: Mapped["Layout"] = relationship(back_populates="scenarios")
-    runs: Mapped[List["Run"]] = relationship(back_populates="scenario")
+    runs: Mapped[list["Run"]] = relationship(back_populates="scenario")
 
     @property
     def arrival_config(self) -> dict:
@@ -71,14 +70,14 @@ class Run(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     run_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
-    scenario_id: Mapped[Optional[int]] = mapped_column(ForeignKey("scenarios.id"), nullable=True)
+    scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.id"), nullable=True)
     seed: Mapped[int] = mapped_column(Integer, default=42)
     algorithm: Mapped[str] = mapped_column(String(64))
     tick_step_ms: Mapped[int] = mapped_column(Integer, default=500)
-    max_ticks: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_ticks: Mapped[int] = mapped_column(Integer, nullable=True)
     started_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    ended_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
-    event_log_checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    ended_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=True)
+    event_log_checksum: Mapped[str] = mapped_column(String(64), nullable=True)
 
     # KPI summary (final)
     avg_wait_ticks: Mapped[float] = mapped_column(Float, default=0.0)
@@ -88,9 +87,9 @@ class Run(Base):
     pct_null_control: Mapped[float] = mapped_column(Float, default=0.0)
     vehicles_passed: Mapped[int] = mapped_column(Integer, default=0)
 
-    scenario: Mapped[Optional["Scenario"]] = relationship(back_populates="runs")
-    events: Mapped[List["EventRecord"]] = relationship(back_populates="run")
-    recording: Mapped[Optional["Recording"]] = relationship(back_populates="run", uselist=False)
+    scenario: Mapped["Scenario"] = relationship(back_populates="runs")
+    events: Mapped[list["EventRecord"]] = relationship(back_populates="run")
+    recording: Mapped["Recording"] = relationship(back_populates="run", uselist=False)
 
 
 class EventRecord(Base):

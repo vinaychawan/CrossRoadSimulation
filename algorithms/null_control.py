@@ -5,7 +5,7 @@ Also acts as the safe fallback when the safety checker intervenes.
 """
 from __future__ import annotations
 
-from algorithms import register, ControllerProtocol
+from algorithms import register
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
 

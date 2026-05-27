@@ -3,15 +3,16 @@ from __future__ import annotations
 
 import random
 import uuid
+from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Protocol
 
 from sim.enums import Direction, EventType, LightPhase, VehicleState
 from sim.events import EventLog, KPISnapshot, SimEvent
 from sim.generator import ArrivalConfig, TrafficGenerator
 from sim.intersection import Intersection
 from sim.kpi import KPICalculator
-from sim.lights import SignalPlan
 from sim.vehicles import Vehicle
 
 # Ticks a vehicle needs to cross the intersection box (type-dependent)
@@ -19,6 +20,20 @@ _CROSS_TICKS = {
     "car": 4,
     "truck": 7,
 }
+
+
+class ControllerProtocol(Protocol):
+    def compute(self, tick: int, intersection: Intersection) -> dict[Direction, LightPhase]:
+        ...
+
+
+class SafetyCheckerProtocol(Protocol):
+    def check(
+        self,
+        commands: dict[Direction, LightPhase],
+        intersection: Intersection,
+    ) -> tuple[dict[Direction, LightPhase], list[dict]]:
+        ...
 
 
 @dataclass
@@ -49,8 +64,8 @@ class SimEngine:
         self,
         config: SimConfig,
         intersection: Intersection,
-        controller: "ControllerProtocol",        # type: ignore[name-defined]
-        safety_checker: "SafetyCheckerProtocol",  # type: ignore[name-defined]
+        controller: ControllerProtocol,
+        safety_checker: SafetyCheckerProtocol,
     ) -> None:
         self.config = config
         self.intersection = intersection
@@ -78,10 +93,8 @@ class SimEngine:
         self._listeners.append(cb)
 
     def remove_listener(self, cb: Callable[[SimEvent], None]) -> None:
-        try:
+        with suppress(ValueError):
             self._listeners.remove(cb)
-        except ValueError:
-            pass
 
     def start(self) -> None:
         self.running = True
@@ -265,10 +278,8 @@ class SimEngine:
         event = SimEvent(tick=self.tick, event_type=etype, payload=payload, run_id=self.config.run_id)
         self._event_log.append(event)
         for cb in list(self._listeners):
-            try:
+            with suppress(Exception):  # noqa: BLE001
                 cb(event)
-            except Exception:  # noqa: BLE001
-                pass
 
 
 def _vehicle_to_dict(v: Vehicle) -> dict:

@@ -1,11 +1,11 @@
 """Regression test: same seed + config must reproduce identical event checksum."""
 import pytest
+
+from algorithms import discover
+from algorithms.switcher import AlgorithmSwitcher
+from safety.checker import SafetyChecker
 from sim.engine import SimConfig, SimEngine
 from sim.intersection import Intersection
-from algorithms.switcher import AlgorithmSwitcher
-from algorithms import discover
-from safety.checker import SafetyChecker
-
 
 discover()
 

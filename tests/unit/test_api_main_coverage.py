@@ -1,4 +1,3 @@
-import json
 import runpy
 from types import SimpleNamespace
 from unittest import mock
@@ -6,13 +5,12 @@ from unittest import mock
 import pytest
 
 import api.main as main_module
-from sim.enums import EventType, LightPhase, VehicleState, Direction
-from sim.vehicles import Vehicle
-from sim.engine import SimConfig, SimEngine
-from sim.intersection import Intersection
 from algorithms.switcher import AlgorithmSwitcher
 from safety.checker import SafetyChecker
-
+from sim.engine import SimConfig, SimEngine
+from sim.enums import Direction, EventType, LightPhase, VehicleState
+from sim.intersection import Intersection
+from sim.vehicles import Vehicle
 
 HEADERS = {"Authorization": "Bearer dev-token"}
 

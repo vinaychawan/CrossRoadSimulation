@@ -8,9 +8,7 @@ Cycles through phases without using traffic data:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-from algorithms import register, ControllerProtocol
+from algorithms import register
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
 

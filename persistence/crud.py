@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import json
-from sqlalchemy.orm import Session
-from persistence.models import Layout, Scenario, Run, EventRecord, Recording
 
+from sqlalchemy.orm import Session
+
+from persistence.models import EventRecord, Layout, Recording, Run, Scenario
 
 # ── Layout ──────────────────────────────────────────────────────────────────
 

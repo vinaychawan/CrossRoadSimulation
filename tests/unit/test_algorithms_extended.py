@@ -2,13 +2,14 @@
 Tests for algorithms/ — covers registry, all controllers, and switcher edge cases.
 """
 import pytest
+
+from algorithms import ControllerProtocol, available, discover, get, register
+from algorithms.adaptive_cycle import AdaptiveCycleController
+from algorithms.fixed_cycle import FixedCycleController
+from algorithms.null_control import NullController
+from algorithms.switcher import AlgorithmSwitcher
 from sim.enums import Direction, LightPhase
 from sim.intersection import Intersection
-from algorithms import discover, get, available, register, ControllerProtocol
-from algorithms.null_control import NullController
-from algorithms.fixed_cycle import FixedCycleController
-from algorithms.adaptive_cycle import AdaptiveCycleController
-from algorithms.switcher import AlgorithmSwitcher
 
 discover()
 

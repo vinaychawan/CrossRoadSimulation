@@ -1,15 +1,13 @@
 """Unit tests for core simulation components."""
-import pytest
-from sim.vehicles import Vehicle, VehicleType
-from sim.lights import TrafficLight, SignalPlan
-from sim.enums import Direction, LightPhase, EventType
-from sim.intersection import Intersection, Lane
-from sim.events import EventLog, SimEvent
-from sim.engine import SimConfig, SimEngine
-from algorithms.switcher import AlgorithmSwitcher
 from algorithms import discover
+from algorithms.switcher import AlgorithmSwitcher
 from safety.checker import SafetyChecker
-
+from sim.engine import SimConfig, SimEngine
+from sim.enums import Direction, EventType, LightPhase
+from sim.events import EventLog, SimEvent
+from sim.intersection import Intersection, Lane
+from sim.lights import TrafficLight
+from sim.vehicles import Vehicle, VehicleType
 
 discover()
 

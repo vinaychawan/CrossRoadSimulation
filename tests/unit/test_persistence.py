@@ -2,13 +2,14 @@
 Full CRUD tests for persistence/ — 100% coverage of crud.py, models.py, database.py.
 """
 import json
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from persistence.models import Base, Layout, Scenario, Run, EventRecord, Recording
 from persistence import crud
-from persistence.database import init_db, get_session, SessionLocal
+from persistence.database import get_session, init_db
+from persistence.models import Base, EventRecord
 
 
 @pytest.fixture

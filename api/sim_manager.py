@@ -5,7 +5,6 @@ WebSocket broadcasting is handled directly in main.py via threading.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from algorithms import discover
 from algorithms.switcher import AlgorithmSwitcher

@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import os
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from persistence.models import Base
 
 _DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./crossroads.db")

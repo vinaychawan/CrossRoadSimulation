@@ -1,19 +1,19 @@
 """
 Extended unit tests for sim/ — covers all missing lines for 100% coverage.
 """
-import pytest
-from sim.enums import Direction, LightPhase, VehicleState, VehicleType, EventType
-from sim.vehicles import Vehicle, VehicleSpec
-from sim.lights import TrafficLight, PhaseConfig, SignalPlan
-from sim.intersection import Intersection, Lane
-from sim.events import EventLog, SimEvent, KPISnapshot
-from sim.engine import SimConfig, SimEngine, _vehicle_to_dict, _kpi_to_dict
-from sim.kpi import KPICalculator
-from sim.generator import ArrivalConfig, TrafficGenerator
-from algorithms.switcher import AlgorithmSwitcher
-from algorithms import discover
-from safety.checker import SafetyChecker
 import random
+
+from algorithms import discover
+from algorithms.switcher import AlgorithmSwitcher
+from safety.checker import SafetyChecker
+from sim.engine import SimConfig, SimEngine, _kpi_to_dict, _vehicle_to_dict
+from sim.enums import Direction, EventType, LightPhase, VehicleState, VehicleType
+from sim.events import EventLog, KPISnapshot, SimEvent
+from sim.generator import ArrivalConfig, TrafficGenerator
+from sim.intersection import Intersection, Lane
+from sim.kpi import KPICalculator
+from sim.lights import PhaseConfig, SignalPlan, TrafficLight
+from sim.vehicles import Vehicle, VehicleSpec
 
 discover()
 
