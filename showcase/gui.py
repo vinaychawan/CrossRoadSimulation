@@ -83,6 +83,8 @@ from sim.intersection import Intersection
 
 algorithms.discover()
 
+_QT_BACKEND = "PyQt6" if QApplication.__module__.startswith("PyQt6") else "PyQt5"
+
 # Qt5/Qt6 compatibility aliases
 _QT_PENSTYLE = getattr(Qt, "PenStyle", Qt)
 _QT_ALIGN = getattr(Qt, "AlignmentFlag", Qt)
@@ -631,7 +633,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Crossroads Simulator — PyQt6 Showcase")
+        self.setWindowTitle(f"Crossroads Simulator — {_QT_BACKEND} Showcase")
         self.setMinimumSize(1100, 700)
         self._engine: Optional[SimEngine] = None
         self._switcher: Optional[AlgorithmSwitcher] = None
@@ -738,7 +740,7 @@ class MainWindow(QMainWindow):
         # Status bar
         self._status = QStatusBar()
         self.setStatusBar(self._status)
-        self._status.showMessage("Ready — press ▶ Start")
+        self._status.showMessage(f"Ready ({_QT_BACKEND}) — press ▶ Start")
 
         # Style sheet
         self.setStyleSheet("""
