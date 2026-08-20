@@ -1,0 +1,49 @@
+spec_version: "1.0"
+module: sim.engine
+description: Simulation engine behavior specifications
+
+invariants:
+  - name: tick_non_negative
+    description: Simulation tick is always non-negative
+    check: "engine.tick >= 0"
+    scope: always
+
+  - name: tick_bounded_by_max
+    description: Tick never exceeds configured max_ticks
+    check: "engine.config.max_ticks is None or engine.tick <= engine.config.max_ticks"
+    scope: when_running
+
+scenarios:
+  - name: fixed_cycle_produces_exits
+    description: Fixed cycle algorithm runs to completion and produces vehicle exits
+    config:
+      seed: 42
+      max_ticks: 200
+      algorithm: fixed_cycle
+    assertions:
+      - type: kpi
+        field: vehicles_passed
+        operator: gt
+        value: 0
+      - type: event_exists
+        event_type: vehicle_exit
+      - type: state
+        field: running
+        operator: eq
+        value: false
+
+  - name: engine_stops_at_max_ticks
+    description: Engine stops running when max_ticks is reached
+    config:
+      seed: 0
+      max_ticks: 50
+      algorithm: fixed_cycle
+    assertions:
+      - type: state
+        field: running
+        operator: eq
+        value: false
+      - type: state
+        field: tick
+        operator: lte
+        value: 50

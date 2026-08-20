@@ -26,3 +26,4 @@ htmlcov/
 # Local runtime artifacts
 crossroads.db
 recordings/
+CLAUDE.local.md

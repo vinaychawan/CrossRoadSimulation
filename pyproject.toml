@@ -17,5 +17,5 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["sim", "safety", "algorithms", "persistence", "api"]
+source = ["sim", "safety", "algorithms", "persistence", "api", "specs"]
 omit = ["tests/*", "*/migrations/*"]

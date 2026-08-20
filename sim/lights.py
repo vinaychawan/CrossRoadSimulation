@@ -35,6 +35,18 @@ class TrafficLight:
     def is_amber_flash(self) -> bool:
         return self.phase == LightPhase.AMBER_FLASH
 
+    @property
+    def is_left_arrow(self) -> bool:
+        return self.phase == LightPhase.LEFT_ARROW
+
+    @property
+    def is_right_arrow(self) -> bool:
+        return self.phase == LightPhase.RIGHT_ARROW
+
+    @property
+    def allows_through(self) -> bool:
+        return self.phase in (LightPhase.GREEN, LightPhase.AMBER_FLASH)
+
 
 @dataclass
 class PhaseConfig:
@@ -43,6 +55,8 @@ class PhaseConfig:
     name: str
     green_directions: list[Direction]
     duration_ticks: int = 60   # default 30 s at 2 ticks/s
+    left_arrow_directions: list[Direction] = field(default_factory=list)
+    right_arrow_directions: list[Direction] = field(default_factory=list)
 
 
 @dataclass
@@ -55,8 +69,12 @@ class SignalPlan:
 
     def __post_init__(self) -> None:
         if not self.phases:
-            # Default 4-phase plan for a standard cross
+            # Default plan: NS green + left arrows, then EW green + left arrows
             self.phases = [
+                PhaseConfig("NS_LEFT", [Direction.NORTH, Direction.SOUTH], 20,
+                            left_arrow_directions=[Direction.NORTH, Direction.SOUTH]),
                 PhaseConfig("NS_GREEN", [Direction.NORTH, Direction.SOUTH], 60),
+                PhaseConfig("EW_LEFT", [Direction.EAST, Direction.WEST], 20,
+                            left_arrow_directions=[Direction.EAST, Direction.WEST]),
                 PhaseConfig("EW_GREEN", [Direction.EAST, Direction.WEST], 60),
             ]

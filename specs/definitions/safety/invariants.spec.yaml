@@ -1,0 +1,38 @@
+spec_version: "1.0"
+module: safety.checker
+description: Safety rule specifications — no conflicting greens, proper phase transitions
+
+invariants:
+  - name: no_conflicting_greens
+    description: N/S and E/W green lights are never simultaneously active
+    check: >-
+      not (
+        any(intersection.lights[d].is_green for d in [Direction.NORTH, Direction.SOUTH])
+        and any(intersection.lights[d].is_green for d in [Direction.EAST, Direction.WEST])
+      )
+    scope: always
+
+scenarios:
+  - name: safety_enforced_during_fixed_cycle
+    description: Fixed cycle run has no conflicting greens
+    config:
+      seed: 42
+      max_ticks: 200
+      algorithm: fixed_cycle
+    assertions:
+      - type: state
+        field: running
+        operator: eq
+        value: false
+
+  - name: safety_enforced_during_adaptive
+    description: Adaptive cycle run has no conflicting greens
+    config:
+      seed: 42
+      max_ticks: 200
+      algorithm: adaptive_cycle
+    assertions:
+      - type: state
+        field: running
+        operator: eq
+        value: false

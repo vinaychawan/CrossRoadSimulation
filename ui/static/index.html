@@ -30,347 +30,212 @@
 </style>
 </head>
 <body>
-
 <div id="sidebar">
-  <div>
-    <h2>🚦 Crossroads Sim</h2>
-    <div id="status" class="stopped">● Disconnected</div>
+  <div><h2>🚦 Crossroads Sim</h2><div id="status" class="stopped">● Disconnected</div></div>
+  <div><h2>Controls</h2><div class="row" style="gap:4px">
+    <button id="btn-create">Create</button><button id="btn-start">▶ Start</button>
+    <button id="btn-stop">■ Stop</button><button id="btn-reset" class="danger">⟳ Reset</button>
+  </div></div>
+  <div><h2>Configuration</h2>
+    <div class="row"><span class="label">Algorithm</span><select id="sel-algo"></select></div>
+    <div class="row" style="margin-top:6px"><span class="label">Seed</span><input type="number" id="inp-seed" value="42" min="0" style="width:80px"/></div>
+    <div class="row" style="margin-top:6px"><span class="label">Max Ticks</span><input type="number" id="inp-maxticks" value="" placeholder="∞" min="1" style="width:80px"/></div>
+    <div class="row" style="margin-top:6px"><button id="btn-switch">Switch Algorithm</button></div>
   </div>
-
-  <div>
-    <h2>Controls</h2>
-    <div class="row" style="gap:4px">
-      <button id="btn-create">Create</button>
-      <button id="btn-start">▶ Start</button>
-      <button id="btn-stop">■ Stop</button>
-      <button id="btn-reset" class="danger">⟳ Reset</button>
-    </div>
-  </div>
-
-  <div>
-    <h2>Configuration</h2>
-    <div class="row"><span class="label">Algorithm</span>
-      <select id="sel-algo"></select>
-    </div>
-    <div class="row" style="margin-top:6px"><span class="label">Seed</span>
-      <input type="number" id="inp-seed" value="42" min="0" style="width:80px"/>
-    </div>
-    <div class="row" style="margin-top:6px"><span class="label">Max Ticks</span>
-      <input type="number" id="inp-maxticks" value="" placeholder="∞" min="1" style="width:80px"/>
-    </div>
-    <div class="row" style="margin-top:6px">
-      <button id="btn-switch">Switch Algorithm</button>
-    </div>
-  </div>
-
-  <div>
-    <h2>Speed</h2>
-    <input type="range" id="slider-speed" min="50" max="2000" value="200" step="50"/>
-    <div id="speed-label" style="font-size:11px;color:#90a4ae">200ms / tick</div>
-  </div>
-
-  <div>
-    <h2>KPIs</h2>
-    <div class="kpi-grid">
-      <div class="kpi-item"><div class="label">Tick</div><div class="kpi-val" id="kpi-tick">–</div></div>
-      <div class="kpi-item"><div class="label">Passed</div><div class="kpi-val" id="kpi-passed">–</div></div>
-      <div class="kpi-item"><div class="label">Avg Wait</div><div class="kpi-val" id="kpi-avgwait">–</div></div>
-      <div class="kpi-item"><div class="label">Throughput</div><div class="kpi-val" id="kpi-thr">–</div></div>
-      <div class="kpi-item"><div class="label">Queue N</div><div class="kpi-val" id="kpi-qN">–</div></div>
-      <div class="kpi-item"><div class="label">Queue S</div><div class="kpi-val" id="kpi-qS">–</div></div>
-      <div class="kpi-item"><div class="label">Queue E</div><div class="kpi-val" id="kpi-qE">–</div></div>
-      <div class="kpi-item"><div class="label">Queue W</div><div class="kpi-val" id="kpi-qW">–</div></div>
-      <div class="kpi-item"><div class="label">% Null Ctrl</div><div class="kpi-val" id="kpi-null">–</div></div>
-      <div class="kpi-item"><div class="label">Algorithm</div><div class="kpi-val" id="kpi-algo" style="font-size:11px">–</div></div>
-    </div>
-  </div>
-
-  <div>
-    <h2>Safety Log</h2>
-    <div id="log"></div>
-  </div>
-
-  <div>
-    <label id="osm-toggle">
-      <input type="checkbox" id="chk-osm"> Show OSM background
-    </label>
-  </div>
+  <div><h2>Speed</h2><input type="range" id="slider-speed" min="50" max="2000" value="200" step="50"/><div id="speed-label" style="font-size:11px;color:#90a4ae">200ms / tick</div></div>
+  <div><h2>KPIs</h2><div class="kpi-grid">
+    <div class="kpi-item"><div class="label">Tick</div><div class="kpi-val" id="kpi-tick">–</div></div>
+    <div class="kpi-item"><div class="label">Passed</div><div class="kpi-val" id="kpi-passed">–</div></div>
+    <div class="kpi-item"><div class="label">Avg Wait</div><div class="kpi-val" id="kpi-avgwait">–</div></div>
+    <div class="kpi-item"><div class="label">Throughput</div><div class="kpi-val" id="kpi-thr">–</div></div>
+    <div class="kpi-item"><div class="label">Queue N</div><div class="kpi-val" id="kpi-qN">–</div></div>
+    <div class="kpi-item"><div class="label">Queue S</div><div class="kpi-val" id="kpi-qS">–</div></div>
+    <div class="kpi-item"><div class="label">Queue E</div><div class="kpi-val" id="kpi-qE">–</div></div>
+    <div class="kpi-item"><div class="label">Queue W</div><div class="kpi-val" id="kpi-qW">–</div></div>
+    <div class="kpi-item"><div class="label">% Null Ctrl</div><div class="kpi-val" id="kpi-null">–</div></div>
+    <div class="kpi-item"><div class="label">Algorithm</div><div class="kpi-val" id="kpi-algo" style="font-size:11px">–</div></div>
+  </div></div>
+  <div><h2>Safety Log</h2><div id="log"></div></div>
+  <div><label id="osm-toggle"><input type="checkbox" id="chk-osm"> Show OSM background</label></div>
 </div>
-
-<div id="main">
-  <canvas id="canvas" width="600" height="600"></canvas>
-</div>
-
-<!-- Optional: Leaflet for OSM tiles -->
-<link id="leaflet-css" rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" disabled/>
-<div id="map-layer" style="display:none;width:600px;height:600px;"></div>
-<script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
-
+<div id="main"><canvas id="canvas" width="700" height="700"></canvas></div>
 <script>
-const TOKEN = "dev-token";
-const API = "";
+const TOKEN="dev-token",API="";
+let state=null,ws=null,speed=200,pollInterval=null;
+const PHASE_COLOR={red:"#e74c3c",yellow:"#f39c12",green:"#2ecc71",left_arrow:"#27ae60",right_arrow:"#27ae60",amber_flash:"#f39c12"};
+const TURN_COLOR={left:"#ff6b6b",straight:"#4ecdc4",right:"#45b7d1"};
+const CAR_COLORS={car:"#3498db",truck:"#e67e22"};
+const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
+const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+const laneW=28,roadW=laneW*3,armLen=220;
 
-// ── State ──────────────────────────────────────────────────────────────────
-let state = null;
-let ws = null;
-let wsInterval = null;
-let speed = 200;
-
-// ── Colour maps ────────────────────────────────────────────────────────────
-const PHASE_COLOR = {
-  red:        "#e74c3c",
-  yellow:     "#f39c12",
-  green:      "#2ecc71",
-  amber_flash:"#f39c12",
-};
-const DIR_ANGLES = { N: 270, S: 90, E: 0, W: 180 };
-
-// ── Canvas rendering ───────────────────────────────────────────────────────
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-function drawIntersection(st) {
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-  const roadW = 80, armLen = 200;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
-  ctx.fillStyle = "#0f3460";
-  ctx.fillRect(0, 0, W, H);
-
-  // Road surface
-  ctx.fillStyle = "#2c3e50";
-  ctx.fillRect(cx - roadW/2, 0, roadW, H);           // vertical
-  ctx.fillRect(0, cy - roadW/2, W, roadW);            // horizontal
-
-  // Centre box
-  ctx.fillStyle = "#34495e";
-  ctx.fillRect(cx - roadW/2, cy - roadW/2, roadW, roadW);
-
-  // Lane markings
-  ctx.setLineDash([12, 8]);
-  ctx.strokeStyle = "#ecf0f1";
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - roadW/2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy + roadW/2); ctx.lineTo(cx, H); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cx - roadW/2, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx + roadW/2, cy); ctx.lineTo(W, cy); ctx.stroke();
+function drawIntersection(st){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#1a4a1a";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#2c3e50";
+  ctx.fillRect(cx-roadW/2,0,roadW,H);
+  ctx.fillRect(0,cy-roadW/2,W,roadW);
+  ctx.fillStyle="#34495e";ctx.fillRect(cx-roadW/2,cy-roadW/2,roadW,roadW);
+  // Lane dividers
+  ctx.setLineDash([10,8]);ctx.strokeStyle="#ffffff55";ctx.lineWidth=1;
+  for(let i=1;i<3;i++){
+    const x=cx-roadW/2+i*laneW;
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-roadW/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,cy+roadW/2);ctx.lineTo(x,H);ctx.stroke();
+  }
+  for(let i=1;i<3;i++){
+    const y=cy-roadW/2+i*laneW;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-roadW/2,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+roadW/2,y);ctx.lineTo(W,y);ctx.stroke();
+  }
   ctx.setLineDash([]);
+  // Centre line
+  ctx.strokeStyle="#f1c40f";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,cy-roadW/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+roadW/2);ctx.lineTo(cx,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(cx-roadW/2,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+roadW/2,cy);ctx.lineTo(W,cy);ctx.stroke();
+  // Lane arrows
+  ctx.fillStyle="#ffffff44";ctx.font="14px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("←",cx-roadW/2+laneW*0.5,cy-roadW/2-40);
+  ctx.fillText("↓",cx-roadW/2+laneW*1.5,cy-roadW/2-40);
+  ctx.fillText("→",cx-roadW/2+laneW*2.5,cy-roadW/2-40);
+  ctx.fillText("→",cx+laneW*0.5,cy+roadW/2+40);
+  ctx.fillText("↑",cx+laneW*1.5,cy+roadW/2+40);
+  ctx.fillText("←",cx+laneW*2.5,cy+roadW/2+40);
+  ctx.fillText("↑",cx+roadW/2+40,cy-roadW/2+laneW*0.5);
+  ctx.fillText("←",cx+roadW/2+40,cy-roadW/2+laneW*1.5);
+  ctx.fillText("↓",cx+roadW/2+40,cy-roadW/2+laneW*2.5);
+  ctx.fillText("↓",cx-roadW/2-40,cy+laneW*0.5);
+  ctx.fillText("→",cx-roadW/2-40,cy+laneW*1.5);
+  ctx.fillText("↑",cx-roadW/2-40,cy+laneW*2.5);
+  // Stop lines
+  ctx.strokeStyle="#fff";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(cx-roadW/2,cy-roadW/2-3);ctx.lineTo(cx,cy-roadW/2-3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+roadW/2+3);ctx.lineTo(cx+roadW/2,cy+roadW/2+3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+roadW/2+3,cy-roadW/2);ctx.lineTo(cx+roadW/2+3,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-roadW/2-3,cy);ctx.lineTo(cx-roadW/2-3,cy+roadW/2);ctx.stroke();
+  if(!st)return;
+  drawLights(st);
+  drawVehicles(st);
+}
 
-  if (!st) return;
-
-  // Traffic lights (circles at end of each arm)
-  const lightPos = {
-    N: { x: cx + roadW*0.4, y: cy - armLen + 20 },
-    S: { x: cx - roadW*0.4, y: cy + armLen - 20 },
-    E: { x: cx + armLen - 20, y: cy - roadW*0.4 },
-    W: { x: cx - armLen + 20, y: cy + roadW*0.4 },
-  };
-  for (const [dir, pos] of Object.entries(lightPos)) {
-    const phase = st.lights[dir]?.phase || "red";
-    const color = PHASE_COLOR[phase] || "#888";
-    const isFlash = phase === "amber_flash" && Math.floor(Date.now()/500) % 2 === 0;
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, 14, 0, Math.PI*2);
-    ctx.fillStyle = isFlash ? "#f39c12" : (phase === "amber_flash" ? "#555" : color);
-    ctx.fill();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // Direction label
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 12px monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(dir, pos.x, pos.y);
+function drawLights(st){
+  const lights=st.lights||{};
+  const pos={N:{x:cx-roadW/2-20,y:cy-roadW/2-20},S:{x:cx+roadW/2+20,y:cy+roadW/2+20},E:{x:cx+roadW/2+20,y:cy-roadW/2-20},W:{x:cx-roadW/2-20,y:cy+roadW/2+20}};
+  for(const[dir,p]of Object.entries(pos)){
+    const info=lights[dir];if(!info)continue;
+    const phase=info.phase||"red";
+    const col=PHASE_COLOR[phase]||"#888";
+    const flash=phase==="amber_flash"&&Math.floor(Date.now()/500)%2===0;
+    ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);
+    ctx.fillStyle=flash?"#f39c12":(phase==="amber_flash"?"#555":col);ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle="#fff";ctx.font="bold 10px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(dir,p.x,p.y);
+    if(info.left_arrow==="left_arrow"){
+      ctx.beginPath();ctx.arc(p.x-16,p.y+16,7,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
+      ctx.fillStyle="#fff";ctx.font="8px monospace";ctx.fillText("←",p.x-16,p.y+16);
+    }
+    if(info.right_arrow==="right_arrow"){
+      ctx.beginPath();ctx.arc(p.x+16,p.y+16,7,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
+      ctx.fillStyle="#fff";ctx.font="8px monospace";ctx.fillText("→",p.x+16,p.y+16);
+    }
   }
-
-  // Queue bars (vertical/horizontal bars near each arm)
-  const queues = st.queues || {};
-  drawQueueBar(ctx, cx - roadW/2 - 20, cy - armLen/2, 14, armLen*0.8, queues.N || 0, 15, true);
-  drawQueueBar(ctx, cx + roadW/2 + 6,  cy + armLen/2 - armLen*0.8, 14, armLen*0.8, queues.S || 0, 15, true);
-  drawQueueBar(ctx, cx + armLen/2 - armLen*0.8, cy - roadW/2 - 20, armLen*0.8, 14, queues.E || 0, 15, false);
-  drawQueueBar(ctx, cx - armLen/2, cy + roadW/2 + 6, armLen*0.8, 14, queues.W || 0, 15, false);
-
-  // Vehicles (dots in crossing zone)
-  const crossing = st.crossing || [];
-  const colors = ["#3498db","#9b59b6","#1abc9c","#e67e22","#e91e63"];
-  crossing.forEach((vid, i) => {
-    const angle = (i / Math.max(crossing.length, 1)) * Math.PI * 2;
-    const r = 18;
-    ctx.beginPath();
-    ctx.arc(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r, 5, 0, Math.PI*2);
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
-  });
 }
 
-function drawQueueBar(ctx, x, y, w, h, count, cap, vertical) {
-  const filled = Math.min(count / cap, 1);
-  ctx.fillStyle = "#1a3a5c";
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "#4fc3f7";
-  if (vertical) {
-    const fh = h * filled;
-    ctx.fillRect(x, y + h - fh, w, fh);
-  } else {
-    const fw = w * filled;
-    ctx.fillRect(x, y, fw, h);
+function drawVehicles(st){
+  const vehicles=st.vehicles||[],crossing=st.crossing||[];
+  vehicles.forEach(v=>{if(v.state==="queued")drawQueued(v);});
+  vehicles.forEach(v=>{if(v.state==="crossing")drawCrossing(v,crossing);});
+}
+
+function drawQueued(v){
+  const isT=v.type==="truck";
+  const carW=isT?22:14,carH=isT?11:8,gap=isT?26:18;
+  const laneOff=({left:0.5,middle:1.5,right:2.5}[v.lane]||1.5)*laneW;
+  let x,y;
+  switch(v.direction){
+    case"N":x=cx-roadW/2+laneOff;y=cy-roadW/2-15-v.queue_position*gap;break;
+    case"S":x=cx+laneOff;y=cy+roadW/2+15+v.queue_position*gap;break;
+    case"E":x=cx+roadW/2+15+v.queue_position*gap;y=cy-roadW/2+laneOff;break;
+    case"W":x=cx-roadW/2-15-v.queue_position*gap;y=cy+laneOff;break;
   }
-  ctx.strokeStyle = "#2a5a8c";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x, y, w, h);
-  // count label
-  ctx.fillStyle = "#90caf9";
-  ctx.font = "10px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(count, x + w/2, y + h/2);
+  if(y<-30||y>H+30||x<-30||x>W+30)return;
+  // Car body with rounded rect
+  const hw=carW/2,hh=carH/2;
+  ctx.fillStyle=CAR_COLORS[v.type]||"#3498db";
+  if(v.direction==="N"||v.direction==="S"){
+    ctx.fillRect(x-hh,y-hw,carH,carW);
+  }else{
+    ctx.fillRect(x-hw,y-hh,carW,carH);
+  }
+  // Turn indicator dot
+  ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);
+  ctx.fillStyle=TURN_COLOR[v.turn]||"#fff";ctx.fill();
 }
 
-function render() {
-  drawIntersection(state);
-  requestAnimationFrame(render);
+function drawCrossing(v,crossingIds){
+  const sz=v.type==="truck"?10:7;
+  const idx=crossingIds.indexOf(v.vehicle_id);
+  let x=cx,y=cy;
+  const off=12;
+  switch(v.direction){
+    case"N":x=cx-off+(v.turn==="left"?-8:v.turn==="right"?8:0);y=cy-off+idx*4;break;
+    case"S":x=cx+off+(v.turn==="left"?8:v.turn==="right"?-8:0);y=cy+off-idx*4;break;
+    case"E":x=cx+off-idx*4;y=cy-off+(v.turn==="left"?-8:v.turn==="right"?8:0);break;
+    case"W":x=cx-off+idx*4;y=cy+off+(v.turn==="left"?8:v.turn==="right"?-8:0);break;
+  }
+  ctx.beginPath();ctx.arc(x,y,sz,0,Math.PI*2);
+  ctx.fillStyle=CAR_COLORS[v.type]||"#3498db";ctx.fill();
+  ctx.strokeStyle=TURN_COLOR[v.turn]||"#fff";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText({left:"←",straight:"↑",right:"→"}[v.turn]||"↑",x,y);
 }
+
+function render(){drawIntersection(state);requestAnimationFrame(render);}
 render();
 
-// ── KPI panel ──────────────────────────────────────────────────────────────
-function updateKPI(st) {
-  document.getElementById("kpi-tick").textContent = st.tick ?? "–";
-  document.getElementById("kpi-passed").textContent = st.kpi?.vehicles_passed ?? "–";
-  document.getElementById("kpi-avgwait").textContent = st.kpi ? st.kpi.avg_wait_ticks.toFixed(1) : "–";
-  document.getElementById("kpi-thr").textContent = st.kpi ? st.kpi.throughput_per_100_ticks.toFixed(2) : "–";
-  document.getElementById("kpi-qN").textContent = st.queues?.N ?? "–";
-  document.getElementById("kpi-qS").textContent = st.queues?.S ?? "–";
-  document.getElementById("kpi-qE").textContent = st.queues?.E ?? "–";
-  document.getElementById("kpi-qW").textContent = st.queues?.W ?? "–";
-  document.getElementById("kpi-null").textContent = st.kpi ? st.kpi.pct_null_control.toFixed(1)+"%" : "–";
-  document.getElementById("kpi-algo").textContent = st.algorithm ?? "–";
+function updateKPI(st){
+  document.getElementById("kpi-tick").textContent=st.tick??"–";
+  document.getElementById("kpi-passed").textContent=st.kpi?.vehicles_passed??"–";
+  document.getElementById("kpi-avgwait").textContent=st.kpi?st.kpi.avg_wait_ticks.toFixed(1):"–";
+  document.getElementById("kpi-thr").textContent=st.kpi?st.kpi.throughput_per_100_ticks.toFixed(2):"–";
+  document.getElementById("kpi-qN").textContent=st.queues?.N??"–";
+  document.getElementById("kpi-qS").textContent=st.queues?.S??"–";
+  document.getElementById("kpi-qE").textContent=st.queues?.E??"–";
+  document.getElementById("kpi-qW").textContent=st.queues?.W??"–";
+  document.getElementById("kpi-null").textContent=st.kpi?st.kpi.pct_null_control.toFixed(1)+"%":"–";
+  document.getElementById("kpi-algo").textContent=st.algorithm??"–";
+}
+function appendLog(msg,isSafety){
+  const log=document.getElementById("log"),div=document.createElement("div");
+  div.textContent=msg;if(isSafety)div.classList.add("safety");
+  log.appendChild(div);log.scrollTop=log.scrollHeight;
+  if(log.children.length>100)log.removeChild(log.firstChild);
 }
 
-// ── Safety log ─────────────────────────────────────────────────────────────
-function appendLog(msg, isSafety) {
-  const log = document.getElementById("log");
-  const div = document.createElement("div");
-  div.textContent = msg;
-  if (isSafety) div.classList.add("safety");
-  log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
-  if (log.children.length > 100) log.removeChild(log.firstChild);
+function connectWS(){
+  const url=`${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws?token=${TOKEN}`;
+  ws=new WebSocket(url);
+  ws.onopen=()=>{document.getElementById("status").textContent="● Connected";document.getElementById("status").className="";if(pollInterval){clearInterval(pollInterval);pollInterval=null;}};
+  ws.onclose=()=>{document.getElementById("status").textContent="● Polling";document.getElementById("status").className="stopped";setTimeout(connectWS,3000);startPolling();};
+  ws.onmessage=(ev)=>{const msg=JSON.parse(ev.data);if(msg.event_type==="safety_override"){appendLog(`[T${msg.tick}] SAFETY: ${(msg.payload||{}).explanation||(msg.payload||{}).rule}`,true);}else if(msg.event_type==="kpi_sample"){state={...state,kpi:msg.payload};}else if(msg.tick!==undefined){state=msg;updateKPI(msg);}};
+  ws.onerror=()=>{};
 }
+function startPolling(){if(pollInterval)return;pollInterval=setInterval(async()=>{try{const r=await fetch(API+"/api/sim/state");if(r.ok){const s=await r.json();if(s.tick!==undefined){state=s;updateKPI(s);}}}catch(e){}},speed);}
+function wsSend(obj){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(obj));}
+async function apiPost(path,body){return(await fetch(API+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+TOKEN},body:JSON.stringify(body)})).json();}
+async function loadAlgorithms(){const list=await fetch(API+"/api/algorithms").then(r=>r.json());const sel=document.getElementById("sel-algo");sel.innerHTML="";list.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});}
 
-// ── WebSocket ──────────────────────────────────────────────────────────────
-function connectWS() {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  const url = `${proto}://${location.host}/ws?token=${TOKEN}`;
-  ws = new WebSocket(url);
-  ws.onopen = () => {
-    document.getElementById("status").textContent = "● Connected";
-    document.getElementById("status").className = "";
-  };
-  ws.onclose = () => {
-    document.getElementById("status").textContent = "● Disconnected";
-    document.getElementById("status").className = "stopped";
-    setTimeout(connectWS, 2000);
-  };
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.event_type === "safety_override") {
-      const p = msg.payload || {};
-      appendLog(`[T${msg.tick}] SAFETY: ${p.explanation || p.rule}`, true);
-    } else if (msg.event_type === "kpi_sample") {
-      state = { ...state, kpi: msg.payload };
-    } else if (msg.tick !== undefined) {
-      state = msg;
-      updateKPI(msg);
-    }
-  };
-  ws.onerror = () => {};
-}
+document.getElementById("btn-create").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;const seed=parseInt(document.getElementById("inp-seed").value)||42;const mt=document.getElementById("inp-maxticks").value;const r=await apiPost("/api/sim/create",{algorithm:algo,seed,max_ticks:mt?parseInt(mt):null});appendLog(`Run created: ${r.run_id}`);});
+document.getElementById("btn-start").addEventListener("click",async()=>{await apiPost("/api/sim/start",{});wsSend({action:"start"});startPolling();});
+document.getElementById("btn-stop").addEventListener("click",async()=>{await apiPost("/api/sim/stop",{});wsSend({action:"stop"});});
+document.getElementById("btn-reset").addEventListener("click",async()=>{await apiPost("/api/sim/reset",{});wsSend({action:"reset"});state=null;});
+document.getElementById("btn-switch").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;await apiPost("/api/sim/switch_algorithm",{algorithm:algo});wsSend({action:"switch_algorithm",algorithm:algo});appendLog(`Switching to: ${algo}`);});
+document.getElementById("slider-speed").addEventListener("input",(e)=>{speed=parseInt(e.target.value);document.getElementById("speed-label").textContent=`${speed}ms / tick`;if(pollInterval){clearInterval(pollInterval);pollInterval=null;startPolling();}});
 
-function wsSend(obj) {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
-}
-
-// ── API helpers ────────────────────────────────────────────────────────────
-async function apiPost(path, body) {
-  const res = await fetch(API + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
-
-async function loadAlgorithms() {
-  const list = await fetch(API + "/api/algorithms").then(r => r.json());
-  const sel = document.getElementById("sel-algo");
-  sel.innerHTML = "";
-  list.forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name; opt.textContent = name;
-    sel.appendChild(opt);
-  });
-}
-
-// ── Buttons ────────────────────────────────────────────────────────────────
-document.getElementById("btn-create").addEventListener("click", async () => {
-  const algo = document.getElementById("sel-algo").value;
-  const seed = parseInt(document.getElementById("inp-seed").value) || 42;
-  const mt = document.getElementById("inp-maxticks").value;
-  const body = { algorithm: algo, seed, max_ticks: mt ? parseInt(mt) : null };
-  const r = await apiPost("/api/sim/create", body);
-  appendLog(`Run created: ${r.run_id}`);
-});
-document.getElementById("btn-start").addEventListener("click", async () => {
-  await apiPost("/api/sim/start", {});
-  wsSend({ action: "start" });
-});
-document.getElementById("btn-stop").addEventListener("click", async () => {
-  await apiPost("/api/sim/stop", {});
-  wsSend({ action: "stop" });
-});
-document.getElementById("btn-reset").addEventListener("click", async () => {
-  await apiPost("/api/sim/reset", {});
-  wsSend({ action: "reset" });
-  state = null;
-});
-document.getElementById("btn-switch").addEventListener("click", async () => {
-  const algo = document.getElementById("sel-algo").value;
-  await apiPost("/api/sim/switch_algorithm", { algorithm: algo });
-  wsSend({ action: "switch_algorithm", algorithm: algo });
-  appendLog(`Switching to algorithm: ${algo}`);
-});
-
-// ── Speed slider ───────────────────────────────────────────────────────────
-document.getElementById("slider-speed").addEventListener("input", (e) => {
-  speed = parseInt(e.target.value);
-  document.getElementById("speed-label").textContent = `${speed}ms / tick`;
-});
-
-// ── OSM toggle ─────────────────────────────────────────────────────────────
-let leafletMap = null;
-document.getElementById("chk-osm").addEventListener("change", (e) => {
-  const mapDiv = document.getElementById("map-layer");
-  if (e.target.checked) {
-    mapDiv.style.display = "block";
-    document.getElementById("leaflet-css").disabled = false;
-    if (!leafletMap) {
-      leafletMap = L.map("map-layer", { zoomControl: false }).setView([51.505, -0.09], 16);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors",
-      }).addTo(leafletMap);
-    }
-  } else {
-    mapDiv.style.display = "none";
-  }
-});
-
-// ── Init ───────────────────────────────────────────────────────────────────
-loadAlgorithms();
-connectWS();
+loadAlgorithms();connectWS();startPolling();
 </script>
 </body>
 </html>

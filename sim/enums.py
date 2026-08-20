@@ -11,10 +11,25 @@ class Direction(str, Enum):
     WEST = "W"
 
 
+class TurnIntention(str, Enum):
+    LEFT = "left"
+    STRAIGHT = "straight"
+    RIGHT = "right"
+
+
+class LanePosition(str, Enum):
+    """Lane within a road arm (left-hand traffic: leftmost=LEFT turn lane)."""
+    LEFT = "left"
+    MIDDLE = "middle"
+    RIGHT = "right"
+
+
 class LightPhase(str, Enum):
     RED = "red"
     YELLOW = "yellow"
     GREEN = "green"
+    LEFT_ARROW = "left_arrow"
+    RIGHT_ARROW = "right_arrow"
     AMBER_FLASH = "amber_flash"   # null-control fallback
 
 

@@ -1,0 +1,42 @@
+spec_version: "1.0"
+module: algorithms.fixed_cycle
+description: Fixed-cycle algorithm behavior specifications
+
+invariants:
+  - name: engine_makes_progress
+    description: After the simulation ends, at least one tick was executed
+    check: "engine.tick > 0"
+    scope: post_run
+
+scenarios:
+  - name: fixed_cycle_deterministic
+    description: Same seed produces identical results across runs
+    config:
+      seed: 42
+      max_ticks: 100
+      algorithm: fixed_cycle
+    assertions:
+      - type: kpi
+        field: vehicles_passed
+        operator: gte
+        value: 0
+      - type: event_count
+        event_type: light_change
+        operator: gt
+        value: 0
+
+  - name: fixed_cycle_handles_traffic
+    description: Under normal traffic the algorithm achieves non-zero throughput
+    config:
+      seed: 7
+      max_ticks: 300
+      algorithm: fixed_cycle
+    assertions:
+      - type: kpi
+        field: throughput_per_100_ticks
+        operator: gt
+        value: 0
+      - type: kpi
+        field: avg_wait_ticks
+        operator: gte
+        value: 0

@@ -110,6 +110,8 @@ _PHASE_COLOR = {
     LightPhase.YELLOW: QColor("#ffee58"),
     LightPhase.RED: QColor("#ef5350"),
     LightPhase.AMBER_FLASH: QColor("#ff9800"),
+    LightPhase.LEFT_ARROW: QColor("#66bb6a"),
+    LightPhase.RIGHT_ARROW: QColor("#66bb6a"),
 }
 _ROAD_COLOR = QColor("#37474f")
 _PAVEMENT_COLOR = QColor("#607d8b")

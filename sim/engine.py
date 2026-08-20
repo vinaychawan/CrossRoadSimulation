@@ -8,7 +8,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from sim.enums import Direction, EventType, LightPhase, VehicleState
+from sim.enums import Direction, EventType, LanePosition, LightPhase, TurnIntention, VehicleState
 from sim.events import EventLog, KPISnapshot, SimEvent
 from sim.generator import ArrivalConfig, TrafficGenerator
 from sim.intersection import Intersection
@@ -115,6 +115,8 @@ class SimEngine:
         self._generator = TrafficGenerator(self.config.arrival_configs, self._rng)
         for d in Direction:
             self.intersection.lanes[d]._queue.clear()
+            for pos in LanePosition:
+                self.intersection.multi_lanes[d][pos]._queue.clear()
         self.intersection.set_all_red()
         self._emit(EventType.SIM_RESET, {})
 
@@ -172,11 +174,20 @@ class SimEngine:
                 d.value: {
                     "phase": self.intersection.lights[d].phase.value,
                     "ticks_in_phase": self.intersection.lights[d].ticks_in_phase,
+                    "left_arrow": self.intersection.turn_lights[d]["left"].phase.value,
+                    "right_arrow": self.intersection.turn_lights[d]["right"].phase.value,
                 }
                 for d in Direction
             },
             "queues": {
-                d.value: self.intersection.lanes[d].queue_length
+                d.value: self.intersection.queue_length(d)
+                for d in Direction
+            },
+            "lane_queues": {
+                d.value: {
+                    pos.value: self.intersection.multi_lanes[d][pos].queue_length
+                    for pos in LanePosition
+                }
                 for d in Direction
             },
             "vehicles": [_vehicle_to_dict(v) for v in self._active_vehicles],
@@ -193,7 +204,8 @@ class SimEngine:
 
     def _process_arrivals(self) -> None:
         for vehicle in self._generator.tick(self.tick):
-            enqueued = self.intersection.lanes[vehicle.direction].enqueue(vehicle)
+            lane = self.intersection.get_lane_for_turn(vehicle.direction, vehicle.turn)
+            enqueued = lane.enqueue(vehicle)
             if enqueued:
                 self._active_vehicles.append(vehicle)
                 self._emit(
@@ -202,6 +214,8 @@ class SimEngine:
                         "vehicle_id": vehicle.vehicle_id,
                         "direction": vehicle.direction.value,
                         "type": vehicle.vehicle_type.value,
+                        "turn": vehicle.turn.value,
+                        "lane": vehicle.lane.value,
                     },
                 )
 
@@ -244,32 +258,60 @@ class SimEngine:
                     },
                 )
 
-        # Release front-of-queue vehicles on green
+        # Release front-of-queue vehicles based on signal and turn
         for direction in Direction:
             light = self.intersection.lights[direction]
-            lane = self.intersection.lanes[direction]
-            if light.is_green and not lane.is_empty:
-                vehicle = lane.dequeue()
-                if vehicle:
-                    vehicle.state = VehicleState.CROSSING
-                    vehicle.cross_tick = self.tick
-                    if vehicle.green_tick is None:
-                        vehicle.green_tick = self.tick
-                    cross_ticks = _CROSS_TICKS[vehicle.vehicle_type.value]
-                    self._crossing_vehicles[vehicle.vehicle_id] = cross_ticks
-                    self._emit(
-                        EventType.VEHICLE_CROSS,
-                        {
-                            "vehicle_id": vehicle.vehicle_id,
-                            "direction": direction.value,
-                        },
-                    )
-            elif light.is_red or light.is_amber_flash:
-                # Mark queued vehicles as stopped if they were moving
-                front = lane.peek()
-                if front and front.state == VehicleState.MOVING:
-                    front.state = VehicleState.QUEUED
-                    front.stops += 1
+            turn_lights = self.intersection.turn_lights[direction]
+
+            for lane_pos in LanePosition:
+                lane = self.intersection.multi_lanes[direction][lane_pos]
+                if lane.is_empty:
+                    continue
+
+                vehicle = lane.peek()
+                if vehicle is None:
+                    continue
+
+                can_go = self._can_vehicle_proceed(vehicle, light, turn_lights)
+
+                if can_go:
+                    vehicle = lane.dequeue()
+                    if vehicle:
+                        vehicle.state = VehicleState.CROSSING
+                        vehicle.cross_tick = self.tick
+                        if vehicle.green_tick is None:
+                            vehicle.green_tick = self.tick
+                        cross_ticks = _CROSS_TICKS[vehicle.vehicle_type.value]
+                        # Turning vehicles take slightly longer
+                        if vehicle.turn != TurnIntention.STRAIGHT:
+                            cross_ticks += 2
+                        self._crossing_vehicles[vehicle.vehicle_id] = cross_ticks
+                        self._emit(
+                            EventType.VEHICLE_CROSS,
+                            {
+                                "vehicle_id": vehicle.vehicle_id,
+                                "direction": direction.value,
+                                "turn": vehicle.turn.value,
+                            },
+                        )
+                else:
+                    front = lane.peek()
+                    if front and front.state == VehicleState.MOVING:
+                        front.state = VehicleState.QUEUED
+                        front.stops += 1
+
+    def _can_vehicle_proceed(self, vehicle: Vehicle, main_light: "TrafficLight", turn_lights: dict) -> bool:
+        """Determine if a vehicle can proceed based on its turn and signal state."""
+        # Left-hand drive: left turns get dedicated arrow phase
+        if vehicle.turn == TurnIntention.LEFT:
+            left_light = turn_lights["left"]
+            return left_light.phase == LightPhase.LEFT_ARROW or main_light.is_green
+        elif vehicle.turn == TurnIntention.RIGHT:
+            right_light = turn_lights["right"]
+            # Right turn on green allowed (no conflict in LHD), or dedicated arrow
+            return right_light.phase == LightPhase.RIGHT_ARROW or main_light.is_green
+        else:
+            return main_light.is_green or main_light.is_amber_flash
 
     def _find_active(self, vid: str) -> Vehicle | None:
         return next((v for v in self._active_vehicles if v.vehicle_id == vid), None)
@@ -287,6 +329,8 @@ def _vehicle_to_dict(v: Vehicle) -> dict:
         "vehicle_id": v.vehicle_id,
         "type": v.vehicle_type.value,
         "direction": v.direction.value,
+        "turn": v.turn.value,
+        "lane": v.lane.value,
         "state": v.state.value,
         "queue_position": v.queue_position,
         "wait_ticks": v.wait_ticks,

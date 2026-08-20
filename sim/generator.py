@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from sim.enums import Direction, VehicleType
+from sim.enums import Direction, LanePosition, TurnIntention, VehicleType
 from sim.vehicles import Vehicle
 
 
@@ -15,6 +15,16 @@ class ArrivalConfig:
     direction: Direction
     mean_interarrival_ticks: float = 20.0   # Poisson process mean gap
     car_fraction: float = 0.8               # rest are trucks
+    left_turn_fraction: float = 0.2
+    right_turn_fraction: float = 0.2
+    # remaining fraction goes straight
+
+
+_TURN_TO_LANE = {
+    TurnIntention.LEFT: LanePosition.LEFT,
+    TurnIntention.STRAIGHT: LanePosition.MIDDLE,
+    TurnIntention.RIGHT: LanePosition.RIGHT,
+}
 
 
 class TrafficGenerator:
@@ -23,7 +33,6 @@ class TrafficGenerator:
     def __init__(self, configs: list[ArrivalConfig], rng: random.Random) -> None:
         self._configs = {c.direction: c for c in configs}
         self._rng = rng
-        # next_arrival_tick[dir] = tick when next vehicle should arrive
         self._next: dict[Direction, int] = {}
         self._init_next(tick=0)
 
@@ -33,6 +42,14 @@ class TrafficGenerator:
 
     def _draw_gap(self, cfg: ArrivalConfig) -> int:
         return max(1, int(self._rng.expovariate(1.0 / cfg.mean_interarrival_ticks)))
+
+    def _pick_turn(self, cfg: ArrivalConfig) -> TurnIntention:
+        r = self._rng.random()
+        if r < cfg.left_turn_fraction:
+            return TurnIntention.LEFT
+        elif r < cfg.left_turn_fraction + cfg.right_turn_fraction:
+            return TurnIntention.RIGHT
+        return TurnIntention.STRAIGHT
 
     def tick(self, current_tick: int) -> list[Vehicle]:
         """Return list of vehicles that arrive this tick."""
@@ -44,11 +61,15 @@ class TrafficGenerator:
                     if self._rng.random() < cfg.car_fraction
                     else VehicleType.TRUCK
                 )
+                turn = self._pick_turn(cfg)
+                lane = _TURN_TO_LANE[turn]
                 arrivals.append(
                     Vehicle(
                         vehicle_id=format(self._rng.getrandbits(32), "08x"),
                         vehicle_type=vtype,
                         direction=direction,
+                        turn=turn,
+                        lane=lane,
                         spawn_tick=current_tick,
                     )
                 )

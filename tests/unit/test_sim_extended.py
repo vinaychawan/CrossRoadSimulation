@@ -70,7 +70,7 @@ def test_lane_peek_empty_returns_none():
 
 def test_lane_default_lane_id():
     lane = Lane(Direction.SOUTH)
-    assert lane.lane_id == "S_lane"
+    assert lane.lane_id == "S_middle"
 
 
 def test_lane_custom_lane_id():
@@ -87,6 +87,24 @@ def test_lane_queue_position_renumbered_after_dequeue():
     lane.dequeue()
     assert v2.queue_position == 0
     assert v3.queue_position == 1
+
+
+def test_lane_allowed_turns_left():
+    from sim.enums import LanePosition, TurnIntention
+    lane = Lane(Direction.NORTH, position=LanePosition.LEFT)
+    assert lane.allowed_turns == [TurnIntention.LEFT]
+
+
+def test_lane_allowed_turns_right():
+    from sim.enums import LanePosition, TurnIntention
+    lane = Lane(Direction.NORTH, position=LanePosition.RIGHT)
+    assert lane.allowed_turns == [TurnIntention.RIGHT]
+
+
+def test_lane_allowed_turns_middle():
+    from sim.enums import LanePosition, TurnIntention
+    lane = Lane(Direction.NORTH, position=LanePosition.MIDDLE)
+    assert lane.allowed_turns == [TurnIntention.STRAIGHT]
 
 
 # ── TrafficLight ──────────────────────────────────────────────────────────────
@@ -112,14 +130,35 @@ def test_traffic_light_tick_increments():
     assert tl.ticks_in_phase == 2
 
 
+def test_traffic_light_is_left_arrow():
+    tl = TrafficLight(Direction.NORTH)
+    tl.set_phase(LightPhase.LEFT_ARROW)
+    assert tl.is_left_arrow
+
+
+def test_traffic_light_is_right_arrow():
+    tl = TrafficLight(Direction.NORTH)
+    tl.set_phase(LightPhase.RIGHT_ARROW)
+    assert tl.is_right_arrow
+
+
+def test_traffic_light_allows_through():
+    tl = TrafficLight(Direction.NORTH)
+    tl.set_phase(LightPhase.GREEN)
+    assert tl.allows_through
+    tl.set_phase(LightPhase.RED)
+    assert not tl.allows_through
+
+
 # ── SignalPlan + PhaseConfig ──────────────────────────────────────────────────
 
 def test_signal_plan_default_phases():
     sp = SignalPlan()
-    # SignalPlan fills in a 2-phase default plan in __post_init__
-    assert len(sp.phases) == 2
-    assert sp.phases[0].name == "NS_GREEN"
-    assert sp.phases[1].name == "EW_GREEN"
+    assert len(sp.phases) == 4
+    assert sp.phases[0].name == "NS_LEFT"
+    assert sp.phases[1].name == "NS_GREEN"
+    assert sp.phases[2].name == "EW_LEFT"
+    assert sp.phases[3].name == "EW_GREEN"
 
 
 def test_signal_plan_custom_phases():
@@ -374,3 +413,45 @@ def test_kpi_to_dict():
     d = _kpi_to_dict(kpi)
     assert d["tick"] == 10
     assert d["vehicles_passed"] == 10
+
+
+# ── Fixed cycle right-arrow coverage ──────────────────────────────────────────
+
+def test_fixed_cycle_right_arrow_phase():
+    """Cover the right_arrow branch in FixedCycleController.compute."""
+    import algorithms.fixed_cycle as fc
+    original = fc._PHASES
+    fc._PHASES = [
+        {"green": (Direction.NORTH, Direction.SOUTH),
+         "left_arrow": (), "right_arrow": (Direction.NORTH,)},
+    ]
+    try:
+        ctrl = fc.FixedCycleController(green_ticks=2, arrow_ticks=2, yellow_ticks=1, all_red_ticks=1)
+        ix = Intersection()
+        ctrl.compute(1, ix)
+        assert ix.turn_lights[Direction.NORTH]["right"].phase == LightPhase.RIGHT_ARROW
+    finally:
+        fc._PHASES = original
+
+
+# ── Engine peek-None defensive guard ──────────────────────────────────────────
+
+def test_engine_move_vehicles_peek_none_guard():
+    """Cover the defensive continue when peek() returns None on a non-empty lane."""
+    from unittest.mock import patch
+    eng = _make_engine(max_ticks=20)
+    eng.start()
+    for _ in range(5):
+        eng.step()
+    call_count = [0]
+    original_peek = Lane.peek
+
+    def patched_peek(self):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return None
+        return original_peek(self)
+
+    with patch.object(Lane, "peek", patched_peek):
+        eng.step()
+    assert eng.tick == 6

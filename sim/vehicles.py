@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 
-from sim.enums import Direction, VehicleState, VehicleType
+from sim.enums import Direction, LanePosition, TurnIntention, VehicleState, VehicleType
 
 # Physical constants per vehicle type
 _VEHICLE_SPECS: dict[VehicleType, dict] = {
@@ -42,6 +42,8 @@ class Vehicle:
     vehicle_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     vehicle_type: VehicleType = VehicleType.CAR
     direction: Direction = Direction.NORTH
+    turn: TurnIntention = TurnIntention.STRAIGHT
+    lane: LanePosition = LanePosition.MIDDLE
     state: VehicleState = VehicleState.QUEUED
     spawn_tick: int = 0
     green_tick: int | None = None   # tick when vehicle first saw green
