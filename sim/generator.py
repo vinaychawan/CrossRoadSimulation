@@ -14,7 +14,9 @@ class ArrivalConfig:
 
     direction: Direction
     mean_interarrival_ticks: float = 20.0   # Poisson process mean gap
-    car_fraction: float = 0.8               # rest are trucks
+    car_fraction: float = 0.7               # fraction of cars
+    bus_fraction: float = 0.1               # fraction of buses
+    # remaining fraction goes to trucks
     left_turn_fraction: float = 0.2
     right_turn_fraction: float = 0.2
     # remaining fraction goes straight
@@ -56,11 +58,13 @@ class TrafficGenerator:
         arrivals: list[Vehicle] = []
         for direction, cfg in self._configs.items():
             if current_tick >= self._next[direction]:
-                vtype = (
-                    VehicleType.CAR
-                    if self._rng.random() < cfg.car_fraction
-                    else VehicleType.TRUCK
-                )
+                r = self._rng.random()
+                if r < cfg.car_fraction:
+                    vtype = VehicleType.CAR
+                elif r < cfg.car_fraction + cfg.bus_fraction:
+                    vtype = VehicleType.BUS
+                else:
+                    vtype = VehicleType.TRUCK
                 turn = self._pick_turn(cfg)
                 lane = _TURN_TO_LANE[turn]
                 arrivals.append(

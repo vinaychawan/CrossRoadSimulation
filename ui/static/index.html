@@ -25,8 +25,6 @@
   #log .safety { color: #e74c3c; }
   #status { font-size: 11px; color: #4caf50; }
   #status.stopped { color: #e74c3c; }
-  #osm-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; }
-  #map-layer { position: absolute; top: 0; left: 0; z-index: -1; }
 </style>
 </head>
 <body>
@@ -55,142 +53,394 @@
     <div class="kpi-item"><div class="label">% Null Ctrl</div><div class="kpi-val" id="kpi-null">–</div></div>
     <div class="kpi-item"><div class="label">Algorithm</div><div class="kpi-val" id="kpi-algo" style="font-size:11px">–</div></div>
   </div></div>
+  <div><h2>Legend</h2>
+    <div style="font-size:10px;display:flex;flex-wrap:wrap;gap:6px">
+      <span style="color:#3498db">■ Car</span>
+      <span style="color:#f39c12">■ Bus</span>
+      <span style="color:#e67e22">■ Truck</span>
+      <span style="color:#9b59b6">● Pedestrian</span>
+    </div>
+  </div>
   <div><h2>Safety Log</h2><div id="log"></div></div>
-  <div><label id="osm-toggle"><input type="checkbox" id="chk-osm"> Show OSM background</label></div>
 </div>
-<div id="main"><canvas id="canvas" width="700" height="700"></canvas></div>
+<div id="main"><canvas id="canvas" width="900" height="900"></canvas></div>
 <script>
 const TOKEN="dev-token",API="";
 let state=null,ws=null,speed=200,pollInterval=null;
 const PHASE_COLOR={red:"#e74c3c",yellow:"#f39c12",green:"#2ecc71",left_arrow:"#27ae60",right_arrow:"#27ae60",amber_flash:"#f39c12"};
 const TURN_COLOR={left:"#ff6b6b",straight:"#4ecdc4",right:"#45b7d1"};
-const CAR_COLORS={car:"#3498db",truck:"#e67e22"};
+const VEHICLE_COLORS={car:"#3498db",bus:"#f39c12",truck:"#e67e22"};
+
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
-const laneW=28,roadW=laneW*3,armLen=220;
 
-function drawIntersection(st){
-  ctx.clearRect(0,0,W,H);
+// 6 lanes per direction: 3 incoming + 3 outgoing
+const laneW=20;
+const lanesPerSide=3;
+const roadHalfW=lanesPerSide*laneW;
+const roadW=roadHalfW*2;
+const pedCrossingW=14;
+
+const VEHICLE_DIM={
+  car:{w:14,h:8,gap:18},
+  bus:{w:28,h:10,gap:32},
+  truck:{w:24,h:10,gap:28}
+};
+
+let crossingProgress={};
+
+function drawRoads(){
   ctx.fillStyle="#1a4a1a";ctx.fillRect(0,0,W,H);
+  // NS road
   ctx.fillStyle="#2c3e50";
-  ctx.fillRect(cx-roadW/2,0,roadW,H);
-  ctx.fillRect(0,cy-roadW/2,W,roadW);
-  ctx.fillStyle="#34495e";ctx.fillRect(cx-roadW/2,cy-roadW/2,roadW,roadW);
-  // Lane dividers
-  ctx.setLineDash([10,8]);ctx.strokeStyle="#ffffff55";ctx.lineWidth=1;
-  for(let i=1;i<3;i++){
-    const x=cx-roadW/2+i*laneW;
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-roadW/2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x,cy+roadW/2);ctx.lineTo(x,H);ctx.stroke();
+  ctx.fillRect(cx-roadHalfW,0,roadW,H);
+  // EW road
+  ctx.fillRect(0,cy-roadHalfW,W,roadW);
+  // Intersection box
+  ctx.fillStyle="#34495e";
+  ctx.fillRect(cx-roadHalfW,cy-roadHalfW,roadW,roadW);
+
+  // Center dividers
+  ctx.strokeStyle="#f1c40f";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,cy-roadHalfW);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+roadHalfW);ctx.lineTo(cx,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(cx-roadHalfW,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+roadHalfW,cy);ctx.lineTo(W,cy);ctx.stroke();
+
+  // Lane dividers (dashed)
+  ctx.setLineDash([8,6]);ctx.strokeStyle="#ffffff40";ctx.lineWidth=1;
+  for(let i=1;i<lanesPerSide;i++){
+    const xL=cx-roadHalfW+i*laneW;
+    ctx.beginPath();ctx.moveTo(xL,0);ctx.lineTo(xL,cy-roadHalfW);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xL,cy+roadHalfW);ctx.lineTo(xL,H);ctx.stroke();
+    const xR=cx+i*laneW;
+    ctx.beginPath();ctx.moveTo(xR,0);ctx.lineTo(xR,cy-roadHalfW);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xR,cy+roadHalfW);ctx.lineTo(xR,H);ctx.stroke();
   }
-  for(let i=1;i<3;i++){
-    const y=cy-roadW/2+i*laneW;
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-roadW/2,y);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx+roadW/2,y);ctx.lineTo(W,y);ctx.stroke();
+  for(let i=1;i<lanesPerSide;i++){
+    const yT=cy-roadHalfW+i*laneW;
+    ctx.beginPath();ctx.moveTo(0,yT);ctx.lineTo(cx-roadHalfW,yT);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+roadHalfW,yT);ctx.lineTo(W,yT);ctx.stroke();
+    const yB=cy+i*laneW;
+    ctx.beginPath();ctx.moveTo(0,yB);ctx.lineTo(cx-roadHalfW,yB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+roadHalfW,yB);ctx.lineTo(W,yB);ctx.stroke();
   }
   ctx.setLineDash([]);
-  // Centre line
-  ctx.strokeStyle="#f1c40f";ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,cy-roadW/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,cy+roadW/2);ctx.lineTo(cx,H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(cx-roadW/2,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+roadW/2,cy);ctx.lineTo(W,cy);ctx.stroke();
-  // Lane arrows
-  ctx.fillStyle="#ffffff44";ctx.font="14px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText("←",cx-roadW/2+laneW*0.5,cy-roadW/2-40);
-  ctx.fillText("↓",cx-roadW/2+laneW*1.5,cy-roadW/2-40);
-  ctx.fillText("→",cx-roadW/2+laneW*2.5,cy-roadW/2-40);
-  ctx.fillText("→",cx+laneW*0.5,cy+roadW/2+40);
-  ctx.fillText("↑",cx+laneW*1.5,cy+roadW/2+40);
-  ctx.fillText("←",cx+laneW*2.5,cy+roadW/2+40);
-  ctx.fillText("↑",cx+roadW/2+40,cy-roadW/2+laneW*0.5);
-  ctx.fillText("←",cx+roadW/2+40,cy-roadW/2+laneW*1.5);
-  ctx.fillText("↓",cx+roadW/2+40,cy-roadW/2+laneW*2.5);
-  ctx.fillText("↓",cx-roadW/2-40,cy+laneW*0.5);
-  ctx.fillText("→",cx-roadW/2-40,cy+laneW*1.5);
-  ctx.fillText("↑",cx-roadW/2-40,cy+laneW*2.5);
-  // Stop lines
+}
+
+function drawPedestrianCrossings(st){
+  const lights=st?st.lights:{};
+  const stripeW=4,stripeGap=4;
+
+  const arms=[
+    {x:cx-roadHalfW, y:cy-roadHalfW-pedCrossingW, w:roadW, h:pedCrossingW, dir:"N", horiz:true},
+    {x:cx-roadHalfW, y:cy+roadHalfW, w:roadW, h:pedCrossingW, dir:"S", horiz:true},
+    {x:cx+roadHalfW, y:cy-roadHalfW, w:pedCrossingW, h:roadW, dir:"E", horiz:false},
+    {x:cx-roadHalfW-pedCrossingW, y:cy-roadHalfW, w:pedCrossingW, h:roadW, dir:"W", horiz:false},
+  ];
+
+  arms.forEach(arm=>{
+    const perpDirs={N:["E","W"],S:["E","W"],E:["N","S"],W:["N","S"]};
+    const perpGreen=perpDirs[arm.dir].some(d=>{
+      const info=lights[d];
+      return info&&(info.phase==="green"||info.phase==="left_arrow"||info.phase==="right_arrow");
+    });
+    const pedGreen=!perpGreen;
+
+    ctx.fillStyle=pedGreen?"#ffffffcc":"#ffffff44";
+    if(arm.horiz){
+      const numStripes=Math.floor(arm.w/(stripeW+stripeGap));
+      for(let i=0;i<numStripes;i++){
+        ctx.fillRect(arm.x+i*(stripeW+stripeGap),arm.y,stripeW,arm.h);
+      }
+    }else{
+      const numStripes=Math.floor(arm.h/(stripeW+stripeGap));
+      for(let i=0;i<numStripes;i++){
+        ctx.fillRect(arm.x,arm.y+i*(stripeW+stripeGap),arm.w,stripeW);
+      }
+    }
+
+    // Pedestrian signal indicator
+    const sigX=arm.horiz?(arm.dir==="N"?arm.x-16:arm.x+arm.w+16):(arm.x+arm.w/2);
+    const sigY=arm.horiz?(arm.y+arm.h/2):(arm.dir==="W"?arm.y-16:arm.y+arm.h+16);
+    ctx.beginPath();ctx.arc(sigX,sigY,7,0,Math.PI*2);
+    ctx.fillStyle=pedGreen?"#2ecc71":"#e74c3c";ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle="#fff";ctx.font="8px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(pedGreen?"🚶":"✋",sigX,sigY);
+
+    if(pedGreen&&st&&st.tick){
+      drawPedestrians(arm,st.tick);
+    }
+  });
+}
+
+function drawPedestrians(arm,tick){
+  const numPeds=4;
+  ctx.fillStyle="#9b59b6";
+  for(let i=0;i<numPeds;i++){
+    const phase=((tick*4+i*29)%100)/100;
+    let px,py;
+    if(arm.horiz){
+      px=arm.x+phase*arm.w;
+      py=arm.y+arm.h/2+(i%2===0?-3:3);
+    }else{
+      px=arm.x+arm.w/2+(i%2===0?-3:3);
+      py=arm.y+phase*arm.h;
+    }
+    ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+    // Small head
+    ctx.beginPath();ctx.arc(px,py-4,1.5,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawStopLines(){
   ctx.strokeStyle="#fff";ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(cx-roadW/2,cy-roadW/2-3);ctx.lineTo(cx,cy-roadW/2-3);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,cy+roadW/2+3);ctx.lineTo(cx+roadW/2,cy+roadW/2+3);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+roadW/2+3,cy-roadW/2);ctx.lineTo(cx+roadW/2+3,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-roadW/2-3,cy);ctx.lineTo(cx-roadW/2-3,cy+roadW/2);ctx.stroke();
-  if(!st)return;
-  drawLights(st);
-  drawVehicles(st);
+  // N incoming (left half of NS road going south)
+  ctx.beginPath();ctx.moveTo(cx-roadHalfW,cy-roadHalfW-pedCrossingW);ctx.lineTo(cx,cy-roadHalfW-pedCrossingW);ctx.stroke();
+  // S incoming (right half)
+  ctx.beginPath();ctx.moveTo(cx,cy+roadHalfW+pedCrossingW);ctx.lineTo(cx+roadHalfW,cy+roadHalfW+pedCrossingW);ctx.stroke();
+  // E incoming (top half)
+  ctx.beginPath();ctx.moveTo(cx+roadHalfW+pedCrossingW,cy-roadHalfW);ctx.lineTo(cx+roadHalfW+pedCrossingW,cy);ctx.stroke();
+  // W incoming (bottom half)
+  ctx.beginPath();ctx.moveTo(cx-roadHalfW-pedCrossingW,cy);ctx.lineTo(cx-roadHalfW-pedCrossingW,cy+roadHalfW);ctx.stroke();
+}
+
+function drawLaneArrows(){
+  ctx.fillStyle="#ffffff55";ctx.font="11px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+  const off=pedCrossingW+22;
+  // N incoming (left half, top)
+  ctx.fillText("←",cx-roadHalfW+laneW*0.5,cy-roadHalfW-off);
+  ctx.fillText("↓",cx-roadHalfW+laneW*1.5,cy-roadHalfW-off);
+  ctx.fillText("→",cx-roadHalfW+laneW*2.5,cy-roadHalfW-off);
+  // N outgoing label (right half)
+  ctx.fillStyle="#ffffff22";
+  ctx.fillText("↑",cx+laneW*0.5,cy-roadHalfW-off);
+  ctx.fillText("↑",cx+laneW*1.5,cy-roadHalfW-off);
+  ctx.fillText("↑",cx+laneW*2.5,cy-roadHalfW-off);
+
+  ctx.fillStyle="#ffffff55";
+  // S incoming (right half, bottom)
+  ctx.fillText("→",cx+laneW*0.5,cy+roadHalfW+off);
+  ctx.fillText("↑",cx+laneW*1.5,cy+roadHalfW+off);
+  ctx.fillText("←",cx+laneW*2.5,cy+roadHalfW+off);
+  // S outgoing
+  ctx.fillStyle="#ffffff22";
+  ctx.fillText("↓",cx-roadHalfW+laneW*0.5,cy+roadHalfW+off);
+  ctx.fillText("↓",cx-roadHalfW+laneW*1.5,cy+roadHalfW+off);
+  ctx.fillText("↓",cx-roadHalfW+laneW*2.5,cy+roadHalfW+off);
+
+  ctx.fillStyle="#ffffff55";
+  // E incoming (top half, right)
+  ctx.fillText("↑",cx+roadHalfW+off,cy-roadHalfW+laneW*0.5);
+  ctx.fillText("←",cx+roadHalfW+off,cy-roadHalfW+laneW*1.5);
+  ctx.fillText("↓",cx+roadHalfW+off,cy-roadHalfW+laneW*2.5);
+  // E outgoing
+  ctx.fillStyle="#ffffff22";
+  ctx.fillText("→",cx+roadHalfW+off,cy+laneW*0.5);
+  ctx.fillText("→",cx+roadHalfW+off,cy+laneW*1.5);
+  ctx.fillText("→",cx+roadHalfW+off,cy+laneW*2.5);
+
+  ctx.fillStyle="#ffffff55";
+  // W incoming (bottom half, left)
+  ctx.fillText("↓",cx-roadHalfW-off,cy+laneW*0.5);
+  ctx.fillText("→",cx-roadHalfW-off,cy+laneW*1.5);
+  ctx.fillText("↑",cx-roadHalfW-off,cy+laneW*2.5);
+  // W outgoing
+  ctx.fillStyle="#ffffff22";
+  ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*0.5);
+  ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*1.5);
+  ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*2.5);
 }
 
 function drawLights(st){
   const lights=st.lights||{};
-  const pos={N:{x:cx-roadW/2-20,y:cy-roadW/2-20},S:{x:cx+roadW/2+20,y:cy+roadW/2+20},E:{x:cx+roadW/2+20,y:cy-roadW/2-20},W:{x:cx-roadW/2-20,y:cy+roadW/2+20}};
+  const pos={
+    N:{x:cx-roadHalfW-pedCrossingW-20,y:cy-roadHalfW-pedCrossingW-20},
+    S:{x:cx+roadHalfW+pedCrossingW+20,y:cy+roadHalfW+pedCrossingW+20},
+    E:{x:cx+roadHalfW+pedCrossingW+20,y:cy-roadHalfW-pedCrossingW-20},
+    W:{x:cx-roadHalfW-pedCrossingW-20,y:cy+roadHalfW+pedCrossingW+20}
+  };
   for(const[dir,p]of Object.entries(pos)){
     const info=lights[dir];if(!info)continue;
     const phase=info.phase||"red";
     const col=PHASE_COLOR[phase]||"#888";
     const flash=phase==="amber_flash"&&Math.floor(Date.now()/500)%2===0;
-    ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);
-    ctx.fillStyle=flash?"#f39c12":(phase==="amber_flash"?"#555":col);ctx.fill();
-    ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle="#fff";ctx.font="bold 10px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+
+    // Housing
+    ctx.fillStyle="#111";
+    ctx.beginPath();ctx.roundRect(p.x-15,p.y-15,30,30,4);ctx.fill();
+    ctx.strokeStyle="#444";ctx.lineWidth=1;ctx.stroke();
+
+    // Main light
+    ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);
+    ctx.fillStyle=flash?"#f39c12":(phase==="amber_flash"?"#444":col);ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle="#fff";ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(dir,p.x,p.y);
+
     if(info.left_arrow==="left_arrow"){
-      ctx.beginPath();ctx.arc(p.x-16,p.y+16,7,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
-      ctx.fillStyle="#fff";ctx.font="8px monospace";ctx.fillText("←",p.x-16,p.y+16);
+      ctx.beginPath();ctx.arc(p.x-10,p.y+18,5,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
+      ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.fillText("←",p.x-10,p.y+18);
     }
     if(info.right_arrow==="right_arrow"){
-      ctx.beginPath();ctx.arc(p.x+16,p.y+16,7,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
-      ctx.fillStyle="#fff";ctx.font="8px monospace";ctx.fillText("→",p.x+16,p.y+16);
+      ctx.beginPath();ctx.arc(p.x+10,p.y+18,5,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
+      ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.fillText("→",p.x+10,p.y+18);
     }
   }
+}
+
+function getQueuedPos(v){
+  const dim=VEHICLE_DIM[v.type]||VEHICLE_DIM.car;
+  const laneIdx={left:0,middle:1,right:2}[v.lane]||1;
+  const laneOff=(laneIdx+0.5)*laneW;
+  const gap=dim.gap;
+  const stopOff=pedCrossingW+12;
+  let x,y;
+  switch(v.direction){
+    case"N":x=cx-roadHalfW+laneOff;y=cy-roadHalfW-stopOff-v.queue_position*gap;break;
+    case"S":x=cx+laneOff;y=cy+roadHalfW+stopOff+v.queue_position*gap;break;
+    case"E":x=cx+roadHalfW+stopOff+v.queue_position*gap;y=cy-roadHalfW+laneOff;break;
+    case"W":x=cx-roadHalfW-stopOff-v.queue_position*gap;y=cy+laneOff;break;
+  }
+  return {x,y};
+}
+
+function getExitPos(v){
+  // Vehicles exit on the opposite outgoing lanes
+  const turnToLane={left:2,straight:1,right:0};
+  const outLane=(turnToLane[v.turn]||1);
+  const laneOff=(outLane+0.5)*laneW;
+  let x,y;
+  switch(v.direction){
+    case"N":// going south, exits on right (east) half south
+      if(v.turn==="straight"){x=cx+laneOff;y=cy+roadHalfW+40;}
+      else if(v.turn==="left"){x=cx-roadHalfW-40;y=cy+laneOff;}// turns west
+      else{x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}// turns east
+      break;
+    case"S":// going north, exits on left (west) half north
+      if(v.turn==="straight"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
+      else if(v.turn==="left"){x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}
+      else{x=cx-roadHalfW-40;y=cy+laneOff;}
+      break;
+    case"E":// going west, exits on bottom (south) half west
+      if(v.turn==="straight"){x=cx-roadHalfW-40;y=cy+laneOff;}
+      else if(v.turn==="left"){x=cx+laneOff;y=cy+roadHalfW+40;}
+      else{x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
+      break;
+    case"W":// going east, exits on top (north) half east
+      if(v.turn==="straight"){x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}
+      else if(v.turn==="left"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
+      else{x=cx+laneOff;y=cy+roadHalfW+40;}
+      break;
+  }
+  return {x,y};
+}
+
+function drawVehicleBody(x,y,v,angle){
+  const dim=VEHICLE_DIM[v.type]||VEHICLE_DIM.car;
+  const color=VEHICLE_COLORS[v.type]||"#3498db";
+  const hw=dim.w/2,hh=dim.h/2;
+
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+
+  if(v.type==="bus"){
+    ctx.fillStyle=color;
+    ctx.beginPath();ctx.roundRect(-hw,-hh,dim.w,dim.h,2);ctx.fill();
+    ctx.fillStyle="#2c3e50";
+    for(let i=0;i<5;i++){ctx.fillRect(-hw+2+i*5,-hh+1,3,2);ctx.fillRect(-hw+2+i*5,hh-3,3,2);}
+    ctx.fillStyle="#fff";ctx.fillRect(-hw,-hh,3,dim.h);// front
+  }else if(v.type==="truck"){
+    ctx.fillStyle="#c0392b";ctx.fillRect(-hw,-hh,8,dim.h);// cab
+    ctx.fillStyle=color;ctx.fillRect(-hw+8,-hh,dim.w-8,dim.h);// cargo
+    ctx.strokeStyle="#7f8c8d";ctx.lineWidth=0.5;ctx.strokeRect(-hw+8,-hh,dim.w-8,dim.h);
+  }else{
+    ctx.fillStyle=color;
+    ctx.beginPath();ctx.roundRect(-hw,-hh,dim.w,dim.h,3);ctx.fill();
+    ctx.fillStyle="#85c1e9";ctx.fillRect(-hw+1,-hh+2,3,dim.h-4);// windshield
+    ctx.fillRect(hw-4,-hh+2,3,dim.h-4);// rear window
+  }
+
+  // Turn indicator dot
+  ctx.beginPath();ctx.arc(hw-2,0,1.5,0,Math.PI*2);
+  ctx.fillStyle=TURN_COLOR[v.turn]||"#fff";ctx.fill();
+  ctx.restore();
+}
+
+function getAngle(v){
+  const angles={N:Math.PI,S:0,E:-Math.PI/2,W:Math.PI/2};
+  return angles[v.direction]||0;
 }
 
 function drawVehicles(st){
-  const vehicles=st.vehicles||[],crossing=st.crossing||[];
-  vehicles.forEach(v=>{if(v.state==="queued")drawQueued(v);});
-  vehicles.forEach(v=>{if(v.state==="crossing")drawCrossing(v,crossing);});
+  const vehicles=st.vehicles||[];
+  const crossing=st.crossing||[];
+
+  const activeCrossing=new Set(crossing);
+  for(const vid of Object.keys(crossingProgress)){
+    if(!activeCrossing.has(vid))delete crossingProgress[vid];
+  }
+  for(const vid of crossing){
+    if(crossingProgress[vid]===undefined)crossingProgress[vid]=0;
+    else crossingProgress[vid]=Math.min(1,crossingProgress[vid]+0.12);
+  }
+
+  // Draw queued
+  vehicles.forEach(v=>{
+    if(v.state==="queued"){
+      const p=getQueuedPos(v);
+      if(p.x<-50||p.x>W+50||p.y<-50||p.y>H+50)return;
+      drawVehicleBody(p.x,p.y,v,getAngle(v));
+    }
+  });
+
+  // Draw crossing with smooth animation
+  vehicles.forEach(v=>{
+    if(v.state==="crossing"){
+      const progress=crossingProgress[v.vehicle_id]||0;
+      // Start position: at stop line
+      const sp=getQueuedPos({...v,queue_position:0});
+      let sx=sp.x,sy=sp.y;
+      switch(v.direction){
+        case"N":sy=cy-roadHalfW;break;
+        case"S":sy=cy+roadHalfW;break;
+        case"E":sx=cx+roadHalfW;break;
+        case"W":sx=cx-roadHalfW;break;
+      }
+      const ep=getExitPos(v);
+      let px,py,angle=getAngle(v);
+
+      if(v.turn==="straight"){
+        px=sx+(ep.x-sx)*progress;
+        py=sy+(ep.y-sy)*progress;
+      }else{
+        // Bezier curve through intersection for turns
+        const cpx=cx,cpy=cy;
+        const t=progress;
+        const mt=1-t;
+        px=mt*mt*sx+2*mt*t*cpx+t*t*ep.x;
+        py=mt*mt*sy+2*mt*t*cpy+t*t*ep.y;
+        // Rotate vehicle along curve tangent
+        const dx=2*mt*(cpx-sx)+2*t*(ep.x-cpx);
+        const dy=2*mt*(cpy-sy)+2*t*(ep.y-cpy);
+        angle=Math.atan2(dx,-dy);
+      }
+      drawVehicleBody(px,py,v,angle);
+    }
+  });
 }
 
-function drawQueued(v){
-  const isT=v.type==="truck";
-  const carW=isT?22:14,carH=isT?11:8,gap=isT?26:18;
-  const laneOff=({left:0.5,middle:1.5,right:2.5}[v.lane]||1.5)*laneW;
-  let x,y;
-  switch(v.direction){
-    case"N":x=cx-roadW/2+laneOff;y=cy-roadW/2-15-v.queue_position*gap;break;
-    case"S":x=cx+laneOff;y=cy+roadW/2+15+v.queue_position*gap;break;
-    case"E":x=cx+roadW/2+15+v.queue_position*gap;y=cy-roadW/2+laneOff;break;
-    case"W":x=cx-roadW/2-15-v.queue_position*gap;y=cy+laneOff;break;
-  }
-  if(y<-30||y>H+30||x<-30||x>W+30)return;
-  // Car body with rounded rect
-  const hw=carW/2,hh=carH/2;
-  ctx.fillStyle=CAR_COLORS[v.type]||"#3498db";
-  if(v.direction==="N"||v.direction==="S"){
-    ctx.fillRect(x-hh,y-hw,carH,carW);
-  }else{
-    ctx.fillRect(x-hw,y-hh,carW,carH);
-  }
-  // Turn indicator dot
-  ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);
-  ctx.fillStyle=TURN_COLOR[v.turn]||"#fff";ctx.fill();
-}
-
-function drawCrossing(v,crossingIds){
-  const sz=v.type==="truck"?10:7;
-  const idx=crossingIds.indexOf(v.vehicle_id);
-  let x=cx,y=cy;
-  const off=12;
-  switch(v.direction){
-    case"N":x=cx-off+(v.turn==="left"?-8:v.turn==="right"?8:0);y=cy-off+idx*4;break;
-    case"S":x=cx+off+(v.turn==="left"?8:v.turn==="right"?-8:0);y=cy+off-idx*4;break;
-    case"E":x=cx+off-idx*4;y=cy-off+(v.turn==="left"?-8:v.turn==="right"?8:0);break;
-    case"W":x=cx-off+idx*4;y=cy+off+(v.turn==="left"?8:v.turn==="right"?-8:0);break;
-  }
-  ctx.beginPath();ctx.arc(x,y,sz,0,Math.PI*2);
-  ctx.fillStyle=CAR_COLORS[v.type]||"#3498db";ctx.fill();
-  ctx.strokeStyle=TURN_COLOR[v.turn]||"#fff";ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText({left:"←",straight:"↑",right:"→"}[v.turn]||"↑",x,y);
+function drawIntersection(st){
+  ctx.clearRect(0,0,W,H);
+  drawRoads();
+  drawPedestrianCrossings(st);
+  drawStopLines();
+  drawLaneArrows();
+  if(!st)return;
+  drawLights(st);
+  drawVehicles(st);
 }
 
 function render(){drawIntersection(state);requestAnimationFrame(render);}
@@ -220,7 +470,7 @@ function connectWS(){
   ws=new WebSocket(url);
   ws.onopen=()=>{document.getElementById("status").textContent="● Connected";document.getElementById("status").className="";if(pollInterval){clearInterval(pollInterval);pollInterval=null;}};
   ws.onclose=()=>{document.getElementById("status").textContent="● Polling";document.getElementById("status").className="stopped";setTimeout(connectWS,3000);startPolling();};
-  ws.onmessage=(ev)=>{const msg=JSON.parse(ev.data);if(msg.event_type==="safety_override"){appendLog(`[T${msg.tick}] SAFETY: ${(msg.payload||{}).explanation||(msg.payload||{}).rule}`,true);}else if(msg.event_type==="kpi_sample"){state={...state,kpi:msg.payload};}else if(msg.tick!==undefined){state=msg;updateKPI(msg);}};
+  ws.onmessage=(ev)=>{const msg=JSON.parse(ev.data);if(msg.event_type==="safety_override"){appendLog("[T"+msg.tick+"] SAFETY: "+((msg.payload||{}).explanation||(msg.payload||{}).rule),true);}else if(msg.event_type==="kpi_sample"){state={...state,kpi:msg.payload};}else if(msg.tick!==undefined){state=msg;updateKPI(msg);}};
   ws.onerror=()=>{};
 }
 function startPolling(){if(pollInterval)return;pollInterval=setInterval(async()=>{try{const r=await fetch(API+"/api/sim/state");if(r.ok){const s=await r.json();if(s.tick!==undefined){state=s;updateKPI(s);}}}catch(e){}},speed);}
@@ -228,12 +478,12 @@ function wsSend(obj){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringif
 async function apiPost(path,body){return(await fetch(API+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+TOKEN},body:JSON.stringify(body)})).json();}
 async function loadAlgorithms(){const list=await fetch(API+"/api/algorithms").then(r=>r.json());const sel=document.getElementById("sel-algo");sel.innerHTML="";list.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});}
 
-document.getElementById("btn-create").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;const seed=parseInt(document.getElementById("inp-seed").value)||42;const mt=document.getElementById("inp-maxticks").value;const r=await apiPost("/api/sim/create",{algorithm:algo,seed,max_ticks:mt?parseInt(mt):null});appendLog(`Run created: ${r.run_id}`);});
+document.getElementById("btn-create").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;const seed=parseInt(document.getElementById("inp-seed").value)||42;const mt=document.getElementById("inp-maxticks").value;const r=await apiPost("/api/sim/create",{algorithm:algo,seed,max_ticks:mt?parseInt(mt):null});appendLog("Run created: "+r.run_id);});
 document.getElementById("btn-start").addEventListener("click",async()=>{await apiPost("/api/sim/start",{});wsSend({action:"start"});startPolling();});
 document.getElementById("btn-stop").addEventListener("click",async()=>{await apiPost("/api/sim/stop",{});wsSend({action:"stop"});});
-document.getElementById("btn-reset").addEventListener("click",async()=>{await apiPost("/api/sim/reset",{});wsSend({action:"reset"});state=null;});
-document.getElementById("btn-switch").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;await apiPost("/api/sim/switch_algorithm",{algorithm:algo});wsSend({action:"switch_algorithm",algorithm:algo});appendLog(`Switching to: ${algo}`);});
-document.getElementById("slider-speed").addEventListener("input",(e)=>{speed=parseInt(e.target.value);document.getElementById("speed-label").textContent=`${speed}ms / tick`;if(pollInterval){clearInterval(pollInterval);pollInterval=null;startPolling();}});
+document.getElementById("btn-reset").addEventListener("click",async()=>{await apiPost("/api/sim/reset",{});wsSend({action:"reset"});state=null;crossingProgress={};});
+document.getElementById("btn-switch").addEventListener("click",async()=>{const algo=document.getElementById("sel-algo").value;await apiPost("/api/sim/switch_algorithm",{algorithm:algo});wsSend({action:"switch_algorithm",algorithm:algo});appendLog("Switching to: "+algo);});
+document.getElementById("slider-speed").addEventListener("input",(e)=>{speed=parseInt(e.target.value);document.getElementById("speed-label").textContent=speed+"ms / tick";if(pollInterval){clearInterval(pollInterval);pollInterval=null;startPolling();}});
 
 loadAlgorithms();connectWS();startPolling();
 </script>

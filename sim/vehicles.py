@@ -14,6 +14,12 @@ _VEHICLE_SPECS: dict[VehicleType, dict] = {
         "acceleration_ms2": 2.5,
         "deceleration_ms2": 4.0,
     },
+    VehicleType.BUS: {
+        "length_m": 12.0,
+        "max_speed_ms": 11.0,
+        "acceleration_ms2": 1.5,
+        "deceleration_ms2": 3.0,
+    },
     VehicleType.TRUCK: {
         "length_m": 12.0,
         "max_speed_ms": 10.0,

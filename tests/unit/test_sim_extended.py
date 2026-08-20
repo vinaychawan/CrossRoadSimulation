@@ -301,7 +301,8 @@ def test_traffic_generator_reproducible():
 def test_arrival_config_defaults():
     cfg = ArrivalConfig(Direction.NORTH)
     assert cfg.mean_interarrival_ticks == 20.0
-    assert cfg.car_fraction == 0.8
+    assert cfg.car_fraction == 0.7
+    assert cfg.bus_fraction == 0.1
 
 
 # ── Engine ────────────────────────────────────────────────────────────────────

@@ -35,6 +35,7 @@ class LightPhase(str, Enum):
 
 class VehicleType(str, Enum):
     CAR = "car"
+    BUS = "bus"
     TRUCK = "truck"
 
 

@@ -13,11 +13,13 @@ from sim.events import EventLog, KPISnapshot, SimEvent
 from sim.generator import ArrivalConfig, TrafficGenerator
 from sim.intersection import Intersection
 from sim.kpi import KPICalculator
+from sim.lights import TrafficLight
 from sim.vehicles import Vehicle
 
 # Ticks a vehicle needs to cross the intersection box (type-dependent)
 _CROSS_TICKS = {
     "car": 4,
+    "bus": 6,
     "truck": 7,
 }
 
@@ -300,7 +302,7 @@ class SimEngine:
                         front.state = VehicleState.QUEUED
                         front.stops += 1
 
-    def _can_vehicle_proceed(self, vehicle: Vehicle, main_light: "TrafficLight", turn_lights: dict) -> bool:
+    def _can_vehicle_proceed(self, vehicle: Vehicle, main_light: TrafficLight, turn_lights: dict) -> bool:
         """Determine if a vehicle can proceed based on its turn and signal state."""
         # Left-hand drive: left turns get dedicated arrow phase
         if vehicle.turn == TurnIntention.LEFT:
