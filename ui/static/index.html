@@ -67,36 +67,32 @@
 <script>
 const TOKEN="dev-token",API="";
 let state=null,ws=null,speed=200,pollInterval=null;
-const PHASE_COLOR={red:"#e74c3c",yellow:"#f39c12",green:"#2ecc71",left_arrow:"#27ae60",right_arrow:"#27ae60",amber_flash:"#f39c12"};
 const TURN_COLOR={left:"#ff6b6b",straight:"#4ecdc4",right:"#45b7d1"};
 const VEHICLE_COLORS={car:"#3498db",bus:"#f39c12",truck:"#e67e22"};
 
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
 
-// 6 lanes per direction: 3 incoming + 3 outgoing
 const laneW=20;
 const lanesPerSide=3;
 const roadHalfW=lanesPerSide*laneW;
 const roadW=roadHalfW*2;
 const pedCrossingW=14;
 
+// Vehicle dimensions: length along travel direction, width perpendicular
 const VEHICLE_DIM={
-  car:{w:14,h:8,gap:18},
-  bus:{w:28,h:10,gap:32},
-  truck:{w:24,h:10,gap:28}
+  car:{len:16,wid:9,gap:20},
+  bus:{len:32,wid:10,gap:36},
+  truck:{len:26,wid:10,gap:30}
 };
 
 let crossingProgress={};
 
 function drawRoads(){
   ctx.fillStyle="#1a4a1a";ctx.fillRect(0,0,W,H);
-  // NS road
   ctx.fillStyle="#2c3e50";
   ctx.fillRect(cx-roadHalfW,0,roadW,H);
-  // EW road
   ctx.fillRect(0,cy-roadHalfW,W,roadW);
-  // Intersection box
   ctx.fillStyle="#34495e";
   ctx.fillRect(cx-roadHalfW,cy-roadHalfW,roadW,roadW);
 
@@ -107,7 +103,7 @@ function drawRoads(){
   ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(cx-roadHalfW,cy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(cx+roadHalfW,cy);ctx.lineTo(W,cy);ctx.stroke();
 
-  // Lane dividers (dashed)
+  // Lane dividers
   ctx.setLineDash([8,6]);ctx.strokeStyle="#ffffff40";ctx.lineWidth=1;
   for(let i=1;i<lanesPerSide;i++){
     const xL=cx-roadHalfW+i*laneW;
@@ -131,14 +127,12 @@ function drawRoads(){
 function drawPedestrianCrossings(st){
   const lights=st?st.lights:{};
   const stripeW=4,stripeGap=4;
-
   const arms=[
     {x:cx-roadHalfW, y:cy-roadHalfW-pedCrossingW, w:roadW, h:pedCrossingW, dir:"N", horiz:true},
     {x:cx-roadHalfW, y:cy+roadHalfW, w:roadW, h:pedCrossingW, dir:"S", horiz:true},
     {x:cx+roadHalfW, y:cy-roadHalfW, w:pedCrossingW, h:roadW, dir:"E", horiz:false},
     {x:cx-roadHalfW-pedCrossingW, y:cy-roadHalfW, w:pedCrossingW, h:roadW, dir:"W", horiz:false},
   ];
-
   arms.forEach(arm=>{
     const perpDirs={N:["E","W"],S:["E","W"],E:["N","S"],W:["N","S"]};
     const perpGreen=perpDirs[arm.dir].some(d=>{
@@ -146,148 +140,182 @@ function drawPedestrianCrossings(st){
       return info&&(info.phase==="green"||info.phase==="left_arrow"||info.phase==="right_arrow");
     });
     const pedGreen=!perpGreen;
-
     ctx.fillStyle=pedGreen?"#ffffffcc":"#ffffff44";
     if(arm.horiz){
-      const numStripes=Math.floor(arm.w/(stripeW+stripeGap));
-      for(let i=0;i<numStripes;i++){
-        ctx.fillRect(arm.x+i*(stripeW+stripeGap),arm.y,stripeW,arm.h);
-      }
+      const n=Math.floor(arm.w/(stripeW+stripeGap));
+      for(let i=0;i<n;i++) ctx.fillRect(arm.x+i*(stripeW+stripeGap),arm.y,stripeW,arm.h);
     }else{
-      const numStripes=Math.floor(arm.h/(stripeW+stripeGap));
-      for(let i=0;i<numStripes;i++){
-        ctx.fillRect(arm.x,arm.y+i*(stripeW+stripeGap),arm.w,stripeW);
-      }
+      const n=Math.floor(arm.h/(stripeW+stripeGap));
+      for(let i=0;i<n;i++) ctx.fillRect(arm.x,arm.y+i*(stripeW+stripeGap),arm.w,stripeW);
     }
-
-    // Pedestrian signal indicator
-    const sigX=arm.horiz?(arm.dir==="N"?arm.x-16:arm.x+arm.w+16):(arm.x+arm.w/2);
-    const sigY=arm.horiz?(arm.y+arm.h/2):(arm.dir==="W"?arm.y-16:arm.y+arm.h+16);
+    // Ped signal
+    const sigX=arm.horiz?(arm.dir==="N"?arm.x-18:arm.x+arm.w+18):(arm.x+arm.w/2);
+    const sigY=arm.horiz?(arm.y+arm.h/2):(arm.dir==="W"?arm.y-18:arm.y+arm.h+18);
     ctx.beginPath();ctx.arc(sigX,sigY,7,0,Math.PI*2);
     ctx.fillStyle=pedGreen?"#2ecc71":"#e74c3c";ctx.fill();
     ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillStyle="#fff";ctx.font="8px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(pedGreen?"🚶":"✋",sigX,sigY);
-
-    if(pedGreen&&st&&st.tick){
-      drawPedestrians(arm,st.tick);
-    }
+    if(pedGreen&&st&&st.tick) drawPedestrians(arm,st.tick);
   });
 }
 
 function drawPedestrians(arm,tick){
-  const numPeds=4;
   ctx.fillStyle="#9b59b6";
-  for(let i=0;i<numPeds;i++){
+  for(let i=0;i<4;i++){
     const phase=((tick*4+i*29)%100)/100;
     let px,py;
-    if(arm.horiz){
-      px=arm.x+phase*arm.w;
-      py=arm.y+arm.h/2+(i%2===0?-3:3);
-    }else{
-      px=arm.x+arm.w/2+(i%2===0?-3:3);
-      py=arm.y+phase*arm.h;
-    }
+    if(arm.horiz){px=arm.x+phase*arm.w;py=arm.y+arm.h/2+(i%2===0?-3:3);}
+    else{px=arm.x+arm.w/2+(i%2===0?-3:3);py=arm.y+phase*arm.h;}
     ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
-    // Small head
     ctx.beginPath();ctx.arc(px,py-4,1.5,0,Math.PI*2);ctx.fill();
   }
 }
 
 function drawStopLines(){
   ctx.strokeStyle="#fff";ctx.lineWidth=3;
-  // N incoming (left half of NS road going south)
   ctx.beginPath();ctx.moveTo(cx-roadHalfW,cy-roadHalfW-pedCrossingW);ctx.lineTo(cx,cy-roadHalfW-pedCrossingW);ctx.stroke();
-  // S incoming (right half)
   ctx.beginPath();ctx.moveTo(cx,cy+roadHalfW+pedCrossingW);ctx.lineTo(cx+roadHalfW,cy+roadHalfW+pedCrossingW);ctx.stroke();
-  // E incoming (top half)
   ctx.beginPath();ctx.moveTo(cx+roadHalfW+pedCrossingW,cy-roadHalfW);ctx.lineTo(cx+roadHalfW+pedCrossingW,cy);ctx.stroke();
-  // W incoming (bottom half)
   ctx.beginPath();ctx.moveTo(cx-roadHalfW-pedCrossingW,cy);ctx.lineTo(cx-roadHalfW-pedCrossingW,cy+roadHalfW);ctx.stroke();
 }
 
 function drawLaneArrows(){
   ctx.fillStyle="#ffffff55";ctx.font="11px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
   const off=pedCrossingW+22;
-  // N incoming (left half, top)
   ctx.fillText("←",cx-roadHalfW+laneW*0.5,cy-roadHalfW-off);
   ctx.fillText("↓",cx-roadHalfW+laneW*1.5,cy-roadHalfW-off);
   ctx.fillText("→",cx-roadHalfW+laneW*2.5,cy-roadHalfW-off);
-  // N outgoing label (right half)
   ctx.fillStyle="#ffffff22";
   ctx.fillText("↑",cx+laneW*0.5,cy-roadHalfW-off);
   ctx.fillText("↑",cx+laneW*1.5,cy-roadHalfW-off);
   ctx.fillText("↑",cx+laneW*2.5,cy-roadHalfW-off);
-
   ctx.fillStyle="#ffffff55";
-  // S incoming (right half, bottom)
   ctx.fillText("→",cx+laneW*0.5,cy+roadHalfW+off);
   ctx.fillText("↑",cx+laneW*1.5,cy+roadHalfW+off);
   ctx.fillText("←",cx+laneW*2.5,cy+roadHalfW+off);
-  // S outgoing
   ctx.fillStyle="#ffffff22";
   ctx.fillText("↓",cx-roadHalfW+laneW*0.5,cy+roadHalfW+off);
   ctx.fillText("↓",cx-roadHalfW+laneW*1.5,cy+roadHalfW+off);
   ctx.fillText("↓",cx-roadHalfW+laneW*2.5,cy+roadHalfW+off);
-
   ctx.fillStyle="#ffffff55";
-  // E incoming (top half, right)
   ctx.fillText("↑",cx+roadHalfW+off,cy-roadHalfW+laneW*0.5);
   ctx.fillText("←",cx+roadHalfW+off,cy-roadHalfW+laneW*1.5);
   ctx.fillText("↓",cx+roadHalfW+off,cy-roadHalfW+laneW*2.5);
-  // E outgoing
   ctx.fillStyle="#ffffff22";
   ctx.fillText("→",cx+roadHalfW+off,cy+laneW*0.5);
   ctx.fillText("→",cx+roadHalfW+off,cy+laneW*1.5);
   ctx.fillText("→",cx+roadHalfW+off,cy+laneW*2.5);
-
   ctx.fillStyle="#ffffff55";
-  // W incoming (bottom half, left)
   ctx.fillText("↓",cx-roadHalfW-off,cy+laneW*0.5);
   ctx.fillText("→",cx-roadHalfW-off,cy+laneW*1.5);
   ctx.fillText("↑",cx-roadHalfW-off,cy+laneW*2.5);
-  // W outgoing
   ctx.fillStyle="#ffffff22";
   ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*0.5);
   ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*1.5);
   ctx.fillText("←",cx-roadHalfW-off,cy-roadHalfW+laneW*2.5);
 }
 
+// Draw a realistic 3-light signal head (R/Y/G vertically) plus turn arrows
+function drawSignalHead(x,y,phase,leftArrow,rightArrow,label,vertical){
+  // Determine which lights are on
+  const isRed=phase==="red";
+  const isYellow=phase==="yellow";
+  const isGreen=phase==="green"||phase==="left_arrow"||phase==="right_arrow";
+  const isAmber=phase==="amber_flash";
+  const flash=isAmber&&Math.floor(Date.now()/500)%2===0;
+
+  // Signal housing (3 lights stacked)
+  const lightR=6;
+  const spacing=16;
+  const houseW=18,houseH=52;
+
+  ctx.save();
+  ctx.translate(x,y);
+  if(!vertical) ctx.rotate(Math.PI/2);
+
+  // Housing background
+  ctx.fillStyle="#111";
+  ctx.beginPath();ctx.roundRect(-houseW/2,-houseH/2,houseW,houseH,3);ctx.fill();
+  ctx.strokeStyle="#333";ctx.lineWidth=1;ctx.stroke();
+
+  // Red light (top)
+  ctx.beginPath();ctx.arc(0,-spacing,lightR,0,Math.PI*2);
+  ctx.fillStyle=isRed?"#e74c3c":"#3a1111";ctx.fill();
+  ctx.strokeStyle="#555";ctx.lineWidth=0.5;ctx.stroke();
+
+  // Yellow light (middle)
+  ctx.beginPath();ctx.arc(0,0,lightR,0,Math.PI*2);
+  ctx.fillStyle=(isYellow||flash)?"#f39c12":(isAmber?"#3a2a00":"#3a2a00");ctx.fill();
+  ctx.strokeStyle="#555";ctx.lineWidth=0.5;ctx.stroke();
+
+  // Green light (bottom)
+  ctx.beginPath();ctx.arc(0,spacing,lightR,0,Math.PI*2);
+  ctx.fillStyle=isGreen?"#2ecc71":"#0a3a0a";ctx.fill();
+  ctx.strokeStyle="#555";ctx.lineWidth=0.5;ctx.stroke();
+
+  ctx.restore();
+
+  // Turn arrow lights (positioned beside the main signal)
+  const arrowOffset=vertical?16:16;
+
+  // Left arrow light
+  const leftOn=leftArrow==="left_arrow";
+  const lax=vertical?x-arrowOffset:x;
+  const lay=vertical?y+houseH/2+10:y-arrowOffset;
+  ctx.beginPath();ctx.arc(lax,lay,5,0,Math.PI*2);
+  ctx.fillStyle=leftOn?"#27ae60":"#0a2a0a";ctx.fill();
+  ctx.strokeStyle="#333";ctx.lineWidth=0.5;ctx.stroke();
+  if(leftOn){
+    ctx.fillStyle="#fff";ctx.font="bold 7px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("←",lax,lay);
+  }
+
+  // Right arrow light
+  const rightOn=rightArrow==="right_arrow";
+  const rax=vertical?x+arrowOffset:x;
+  const ray=vertical?y+houseH/2+10:y+arrowOffset;
+  ctx.beginPath();ctx.arc(rax,ray,5,0,Math.PI*2);
+  ctx.fillStyle=rightOn?"#27ae60":"#0a2a0a";ctx.fill();
+  ctx.strokeStyle="#333";ctx.lineWidth=0.5;ctx.stroke();
+  if(rightOn){
+    ctx.fillStyle="#fff";ctx.font="bold 7px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("→",rax,ray);
+  }
+
+  // Direction label below signal
+  ctx.fillStyle="#aaa";ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+  const lblY=vertical?y-houseH/2-8:y;
+  const lblX=vertical?x:x+houseH/2+8;
+  ctx.fillText(label,lblX,lblY);
+}
+
 function drawLights(st){
   const lights=st.lights||{};
-  const pos={
-    N:{x:cx-roadHalfW-pedCrossingW-20,y:cy-roadHalfW-pedCrossingW-20},
-    S:{x:cx+roadHalfW+pedCrossingW+20,y:cy+roadHalfW+pedCrossingW+20},
-    E:{x:cx+roadHalfW+pedCrossingW+20,y:cy-roadHalfW-pedCrossingW-20},
-    W:{x:cx-roadHalfW-pedCrossingW-20,y:cy+roadHalfW+pedCrossingW+20}
-  };
-  for(const[dir,p]of Object.entries(pos)){
-    const info=lights[dir];if(!info)continue;
-    const phase=info.phase||"red";
-    const col=PHASE_COLOR[phase]||"#888";
-    const flash=phase==="amber_flash"&&Math.floor(Date.now()/500)%2===0;
-
-    // Housing
-    ctx.fillStyle="#111";
-    ctx.beginPath();ctx.roundRect(p.x-15,p.y-15,30,30,4);ctx.fill();
-    ctx.strokeStyle="#444";ctx.lineWidth=1;ctx.stroke();
-
-    // Main light
-    ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);
-    ctx.fillStyle=flash?"#f39c12":(phase==="amber_flash"?"#444":col);ctx.fill();
-    ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
-    ctx.fillStyle="#fff";ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
-    ctx.fillText(dir,p.x,p.y);
-
-    if(info.left_arrow==="left_arrow"){
-      ctx.beginPath();ctx.arc(p.x-10,p.y+18,5,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
-      ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.fillText("←",p.x-10,p.y+18);
-    }
-    if(info.right_arrow==="right_arrow"){
-      ctx.beginPath();ctx.arc(p.x+10,p.y+18,5,0,Math.PI*2);ctx.fillStyle="#27ae60";ctx.fill();
-      ctx.fillStyle="#fff";ctx.font="7px monospace";ctx.textAlign="center";ctx.fillText("→",p.x+10,p.y+18);
-    }
-  }
+  // N signal: positioned at top-left of N incoming lanes
+  const nInfo=lights["N"]||{};
+  drawSignalHead(
+    cx-roadHalfW-pedCrossingW-30, cy-roadHalfW-pedCrossingW-30,
+    nInfo.phase||"red", nInfo.left_arrow||"", nInfo.right_arrow||"", "N", true
+  );
+  // S signal: positioned at bottom-right of S incoming lanes
+  const sInfo=lights["S"]||{};
+  drawSignalHead(
+    cx+roadHalfW+pedCrossingW+30, cy+roadHalfW+pedCrossingW+30,
+    sInfo.phase||"red", sInfo.left_arrow||"", sInfo.right_arrow||"", "S", true
+  );
+  // E signal: positioned at top-right
+  const eInfo=lights["E"]||{};
+  drawSignalHead(
+    cx+roadHalfW+pedCrossingW+30, cy-roadHalfW-pedCrossingW-30,
+    eInfo.phase||"red", eInfo.left_arrow||"", eInfo.right_arrow||"", "E", false
+  );
+  // W signal: positioned at bottom-left
+  const wInfo=lights["W"]||{};
+  drawSignalHead(
+    cx-roadHalfW-pedCrossingW-30, cy+roadHalfW+pedCrossingW+30,
+    wInfo.phase||"red", wInfo.left_arrow||"", wInfo.right_arrow||"", "W", false
+  );
 }
 
 function getQueuedPos(v){
@@ -295,7 +323,7 @@ function getQueuedPos(v){
   const laneIdx={left:0,middle:1,right:2}[v.lane]||1;
   const laneOff=(laneIdx+0.5)*laneW;
   const gap=dim.gap;
-  const stopOff=pedCrossingW+12;
+  const stopOff=pedCrossingW+dim.len/2+4;
   let x,y;
   switch(v.direction){
     case"N":x=cx-roadHalfW+laneOff;y=cy-roadHalfW-stopOff-v.queue_position*gap;break;
@@ -307,71 +335,112 @@ function getQueuedPos(v){
 }
 
 function getExitPos(v){
-  // Vehicles exit on the opposite outgoing lanes
   const turnToLane={left:2,straight:1,right:0};
   const outLane=(turnToLane[v.turn]||1);
   const laneOff=(outLane+0.5)*laneW;
   let x,y;
   switch(v.direction){
-    case"N":// going south, exits on right (east) half south
-      if(v.turn==="straight"){x=cx+laneOff;y=cy+roadHalfW+40;}
-      else if(v.turn==="left"){x=cx-roadHalfW-40;y=cy+laneOff;}// turns west
-      else{x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}// turns east
+    case"N":
+      if(v.turn==="straight"){x=cx+laneOff;y=cy+roadHalfW+50;}
+      else if(v.turn==="left"){x=cx-roadHalfW-50;y=cy+laneOff;}
+      else{x=cx+roadHalfW+50;y=cy-roadHalfW+laneOff;}
       break;
-    case"S":// going north, exits on left (west) half north
-      if(v.turn==="straight"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
-      else if(v.turn==="left"){x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}
-      else{x=cx-roadHalfW-40;y=cy+laneOff;}
+    case"S":
+      if(v.turn==="straight"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-50;}
+      else if(v.turn==="left"){x=cx+roadHalfW+50;y=cy-roadHalfW+laneOff;}
+      else{x=cx-roadHalfW-50;y=cy+laneOff;}
       break;
-    case"E":// going west, exits on bottom (south) half west
-      if(v.turn==="straight"){x=cx-roadHalfW-40;y=cy+laneOff;}
-      else if(v.turn==="left"){x=cx+laneOff;y=cy+roadHalfW+40;}
-      else{x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
+    case"E":
+      if(v.turn==="straight"){x=cx-roadHalfW-50;y=cy+laneOff;}
+      else if(v.turn==="left"){x=cx+laneOff;y=cy+roadHalfW+50;}
+      else{x=cx-roadHalfW+laneOff;y=cy-roadHalfW-50;}
       break;
-    case"W":// going east, exits on top (north) half east
-      if(v.turn==="straight"){x=cx+roadHalfW+40;y=cy-roadHalfW+laneOff;}
-      else if(v.turn==="left"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-40;}
-      else{x=cx+laneOff;y=cy+roadHalfW+40;}
+    case"W":
+      if(v.turn==="straight"){x=cx+roadHalfW+50;y=cy-roadHalfW+laneOff;}
+      else if(v.turn==="left"){x=cx-roadHalfW+laneOff;y=cy-roadHalfW-50;}
+      else{x=cx+laneOff;y=cy+roadHalfW+50;}
       break;
   }
   return {x,y};
 }
 
+// Get vehicle heading angle based on direction of travel
+// Vehicles drawn with length along local X-axis; rotation orients them
+// N incoming travels DOWN: angle=PI/2, S travels UP: angle=-PI/2
+// E travels LEFT: angle=PI, W travels RIGHT: angle=0
+function getTravelAngle(direction){
+  switch(direction){
+    case"N":return Math.PI/2;   // pointing down
+    case"S":return -Math.PI/2;  // pointing up
+    case"E":return Math.PI;     // pointing left
+    case"W":return 0;           // pointing right
+  }
+  return 0;
+}
+
 function drawVehicleBody(x,y,v,angle){
   const dim=VEHICLE_DIM[v.type]||VEHICLE_DIM.car;
   const color=VEHICLE_COLORS[v.type]||"#3498db";
-  const hw=dim.w/2,hh=dim.h/2;
+  const hl=dim.len/2, hw=dim.wid/2;
 
   ctx.save();
   ctx.translate(x,y);
   ctx.rotate(angle);
 
+  // Vehicle body drawn with length along X, width along Y
   if(v.type==="bus"){
     ctx.fillStyle=color;
-    ctx.beginPath();ctx.roundRect(-hw,-hh,dim.w,dim.h,2);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-hl,-hw,dim.len,dim.wid,2);ctx.fill();
+    // Windows along top and bottom edges
     ctx.fillStyle="#2c3e50";
-    for(let i=0;i<5;i++){ctx.fillRect(-hw+2+i*5,-hh+1,3,2);ctx.fillRect(-hw+2+i*5,hh-3,3,2);}
-    ctx.fillStyle="#fff";ctx.fillRect(-hw,-hh,3,dim.h);// front
+    for(let i=0;i<6;i++){
+      ctx.fillRect(-hl+4+i*5,-hw+1,3,2);
+      ctx.fillRect(-hl+4+i*5,hw-3,3,2);
+    }
+    // Front windshield
+    ctx.fillStyle="#aaddff";
+    ctx.fillRect(hl-4,-hw+1,3,dim.wid-2);
+    // Rear
+    ctx.fillStyle="#c0392b";
+    ctx.fillRect(-hl,-hw+2,2,dim.wid-4);
   }else if(v.type==="truck"){
-    ctx.fillStyle="#c0392b";ctx.fillRect(-hw,-hh,8,dim.h);// cab
-    ctx.fillStyle=color;ctx.fillRect(-hw+8,-hh,dim.w-8,dim.h);// cargo
-    ctx.strokeStyle="#7f8c8d";ctx.lineWidth=0.5;ctx.strokeRect(-hw+8,-hh,dim.w-8,dim.h);
-  }else{
+    // Cab at front
+    ctx.fillStyle="#c0392b";
+    ctx.beginPath();ctx.roundRect(hl-9,-hw,9,dim.wid,2);ctx.fill();
+    // Windshield
+    ctx.fillStyle="#aaddff";
+    ctx.fillRect(hl-4,-hw+2,3,dim.wid-4);
+    // Cargo body
     ctx.fillStyle=color;
-    ctx.beginPath();ctx.roundRect(-hw,-hh,dim.w,dim.h,3);ctx.fill();
-    ctx.fillStyle="#85c1e9";ctx.fillRect(-hw+1,-hh+2,3,dim.h-4);// windshield
-    ctx.fillRect(hw-4,-hh+2,3,dim.h-4);// rear window
+    ctx.fillRect(-hl,-hw,dim.len-9,dim.wid);
+    ctx.strokeStyle="#7f8c8d";ctx.lineWidth=0.5;
+    ctx.strokeRect(-hl,-hw,dim.len-9,dim.wid);
+  }else{
+    // Car body
+    ctx.fillStyle=color;
+    ctx.beginPath();ctx.roundRect(-hl,-hw,dim.len,dim.wid,3);ctx.fill();
+    // Windshield (front)
+    ctx.fillStyle="#85c1e9";
+    ctx.fillRect(hl-5,-hw+2,4,dim.wid-4);
+    // Rear window
+    ctx.fillStyle="#5dade2";
+    ctx.fillRect(-hl+1,-hw+2,3,dim.wid-4);
+    // Roof
+    ctx.fillStyle=color;ctx.globalAlpha=0.7;
+    ctx.fillRect(-hl+4,-hw+2,dim.len-9,dim.wid-4);
+    ctx.globalAlpha=1;
   }
 
-  // Turn indicator dot
-  ctx.beginPath();ctx.arc(hw-2,0,1.5,0,Math.PI*2);
-  ctx.fillStyle=TURN_COLOR[v.turn]||"#fff";ctx.fill();
-  ctx.restore();
-}
+  // Turn indicator at front
+  if(v.turn==="left"){
+    ctx.fillStyle="#ff6b6b";
+    ctx.beginPath();ctx.arc(hl-2,-hw-1,2,0,Math.PI*2);ctx.fill();
+  }else if(v.turn==="right"){
+    ctx.fillStyle="#45b7d1";
+    ctx.beginPath();ctx.arc(hl-2,hw+1,2,0,Math.PI*2);ctx.fill();
+  }
 
-function getAngle(v){
-  const angles={N:Math.PI,S:0,E:-Math.PI/2,W:Math.PI/2};
-  return angles[v.direction]||0;
+  ctx.restore();
 }
 
 function drawVehicles(st){
@@ -380,29 +449,29 @@ function drawVehicles(st){
 
   const activeCrossing=new Set(crossing);
   for(const vid of Object.keys(crossingProgress)){
-    if(!activeCrossing.has(vid))delete crossingProgress[vid];
+    if(!activeCrossing.has(vid)) delete crossingProgress[vid];
   }
   for(const vid of crossing){
-    if(crossingProgress[vid]===undefined)crossingProgress[vid]=0;
-    else crossingProgress[vid]=Math.min(1,crossingProgress[vid]+0.12);
+    if(crossingProgress[vid]===undefined) crossingProgress[vid]=0;
+    else crossingProgress[vid]=Math.min(1,crossingProgress[vid]+0.1);
   }
 
-  // Draw queued
+  // Draw queued vehicles
   vehicles.forEach(v=>{
     if(v.state==="queued"){
       const p=getQueuedPos(v);
-      if(p.x<-50||p.x>W+50||p.y<-50||p.y>H+50)return;
-      drawVehicleBody(p.x,p.y,v,getAngle(v));
+      if(p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
+      drawVehicleBody(p.x,p.y,v,getTravelAngle(v.direction));
     }
   });
 
-  // Draw crossing with smooth animation
+  // Draw crossing vehicles animating through intersection
   vehicles.forEach(v=>{
     if(v.state==="crossing"){
       const progress=crossingProgress[v.vehicle_id]||0;
-      // Start position: at stop line
       const sp=getQueuedPos({...v,queue_position:0});
       let sx=sp.x,sy=sp.y;
+      // Snap start to intersection edge
       switch(v.direction){
         case"N":sy=cy-roadHalfW;break;
         case"S":sy=cy+roadHalfW;break;
@@ -410,22 +479,22 @@ function drawVehicles(st){
         case"W":sx=cx-roadHalfW;break;
       }
       const ep=getExitPos(v);
-      let px,py,angle=getAngle(v);
+      let px,py,angle=getTravelAngle(v.direction);
 
       if(v.turn==="straight"){
+        // Linear path through intersection
         px=sx+(ep.x-sx)*progress;
         py=sy+(ep.y-sy)*progress;
       }else{
-        // Bezier curve through intersection for turns
+        // Quadratic Bezier curve for turning
         const cpx=cx,cpy=cy;
-        const t=progress;
-        const mt=1-t;
+        const t=progress,mt=1-t;
         px=mt*mt*sx+2*mt*t*cpx+t*t*ep.x;
         py=mt*mt*sy+2*mt*t*cpy+t*t*ep.y;
-        // Rotate vehicle along curve tangent
+        // Tangent angle for vehicle rotation
         const dx=2*mt*(cpx-sx)+2*t*(ep.x-cpx);
         const dy=2*mt*(cpy-sy)+2*t*(ep.y-cpy);
-        angle=Math.atan2(dx,-dy);
+        angle=Math.atan2(dy,dx);
       }
       drawVehicleBody(px,py,v,angle);
     }
@@ -438,7 +507,7 @@ function drawIntersection(st){
   drawPedestrianCrossings(st);
   drawStopLines();
   drawLaneArrows();
-  if(!st)return;
+  if(!st) return;
   drawLights(st);
   drawVehicles(st);
 }
@@ -466,7 +535,7 @@ function appendLog(msg,isSafety){
 }
 
 function connectWS(){
-  const url=`${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws?token=${TOKEN}`;
+  const url=(location.protocol==="https:"?"wss":"ws")+"://"+location.host+"/ws?token="+TOKEN;
   ws=new WebSocket(url);
   ws.onopen=()=>{document.getElementById("status").textContent="● Connected";document.getElementById("status").className="";if(pollInterval){clearInterval(pollInterval);pollInterval=null;}};
   ws.onclose=()=>{document.getElementById("status").textContent="● Polling";document.getElementById("status").className="stopped";setTimeout(connectWS,3000);startPolling();};
